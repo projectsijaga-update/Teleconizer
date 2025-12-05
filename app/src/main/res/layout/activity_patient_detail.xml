@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical"
+	android:padding="16dp">
+
+	<androidx.appcompat.widget.Toolbar
+		android:id="@+id/toolbar"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:background="?attr/colorPrimary"
+		android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+		android:title="Patient" />
+
+	<Button
+		android:id="@+id/btnBack"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/back"
+		android:paddingTop="8dp" />
+
+
+	<!-- Status section -->
+	<TextView
+		android:id="@+id/tvStatus"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Safe"
+		android:textSize="28sp"
+		android:textStyle="bold"
+		android:paddingTop="8dp" />
+
+	<!-- Coordinates and Maps -->
+	<TextView
+		android:id="@+id/tvCoordinates"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Lat: -, Lon: -"
+		android:paddingTop="12dp" />
+
+	<Button
+		android:id="@+id/btnOpenInMaps"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/open_in_google_maps"
+		android:paddingTop="8dp" />
+
+	<!-- Emergency contact info -->
+	<TextView
+		android:id="@+id/tvEmergencyTitle"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/emergency_contact"
+		android:textStyle="bold"
+		android:paddingTop="24dp" />
+
+	<TextView
+		android:id="@+id/tvEmergencyName"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Name: @string/not_set"
+		android:paddingTop="8dp" />
+
+	<TextView
+		android:id="@+id/tvEmergencyPhone"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Phone: @string/not_set"
+		android:paddingTop="4dp" />
+
+	<Button
+		android:id="@+id/btnAddContact"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="Add Contact"
+		android:paddingTop="8dp" />
+
+	<androidx.recyclerview.widget.RecyclerView
+		android:id="@+id/rvPhoneNumbers"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:paddingTop="8dp" />
+
+	<Button
+		android:id="@+id/btnCall"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/call"
+		android:paddingTop="8dp" />
+
+	<Button
+		android:id="@+id/btnEditContact"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/edit_contact"
+		android:paddingTop="8dp" />
+
+	<Button
+		android:id="@+id/btnDeleteContact"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/delete_contact"
+		android:paddingTop="8dp" />
+
+	<!-- Stop Alarm control restored -->
+	<Button
+		android:id="@+id/btnStopAlarm"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/stop_alarm"
+		android:paddingTop="8dp" />
+
+</LinearLayout>
+
+

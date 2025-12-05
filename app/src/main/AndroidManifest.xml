@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.teleconizer.app">
+
+    <!-- Permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <application
+        android:name=".TeleconizerApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Teleconizer"
+        tools:targetApi="30">
+        
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_GOOGLE_MAPS_API_KEY" />
+
+        <activity
+            android:name=".ui.login.LoginActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Teleconizer">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+        <activity
+            android:name=".ui.main.MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Teleconizer" />
+        <activity
+            android:name=".ui.main.DashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Teleconizer" />
+        <activity
+            android:name=".ui.main.PatientDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Teleconizer" />
+        <activity
+            android:name=".ui.settings.EmergencyContactActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Teleconizer" />
+            
+        <!-- Alarm Service -->
+        <service
+            android:name=".service.AlarmService"
+            android:enabled="true"
+            android:exported="false" />
+    </application>
+</manifest>

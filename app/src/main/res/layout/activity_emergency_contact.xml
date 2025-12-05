@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical"
+	android:padding="16dp">
+
+	<EditText
+		android:id="@+id/etName"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:hint="@string/emergency_contact_name"
+		android:inputType="textPersonName" />
+
+	<EditText
+		android:id="@+id/etPhone"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:hint="@string/emergency_contact_phone"
+		android:inputType="phone" />
+
+	<Button
+		android:id="@+id/btnSave"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/save" />
+
+	<Button
+		android:id="@+id/btnDelete"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/delete_contact" />
+
+	<Button
+		android:id="@+id/btnCall"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:text="@string/call_now" />
+
+</LinearLayout>
+
+

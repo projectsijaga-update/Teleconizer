@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "36691808961",
+    "firebase_url": "https://sijaga-95af3-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "sijaga-95af3",
+    "storage_bucket": "sijaga-95af3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:36691808961:android:12daedb297620703caba40",
+        "android_client_info": {
+          "package_name": "com.teleconizer.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1RR16BMqsJkDlZK8kwKTOfrNxT-XvLZc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

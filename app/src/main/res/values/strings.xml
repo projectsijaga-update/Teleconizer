@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Teleconizer</string>
+    
+    <!-- Login Activity -->
+    <string name="login_title">Teleconizer Login</string>
+    <string name="email_hint">Email</string>
+    <string name="username_hint">Username</string>
+    <string name="password_hint">Password</string>
+    <string name="login_button">Login</string>
+    <string name="login_error">Invalid email or password</string>
+    
+    <!-- Main Activity -->
+    <string name="dashboard_title">Patient Monitor</string>
+    <string name="details">Details</string>
+    <string name="open_in_maps">Open in Maps</string>
+    <string name="back">Back</string>
+    <string name="emergency_contact">Emergency Contact</string>
+    <string name="exit_app">Exit App</string>
+    <string name="status_safe">Status: Safe</string>
+    <string name="status_danger">Status: Immediate Help Needed</string>
+    <string name="stop_alarm">Stop Alarm</string>
+    <string name="open_in_google_maps">Open in Google Maps</string>
+    <string name="call">Call</string>
+    <string name="not_set">Not set</string>
+    <string name="emergency_contact_name">Emergency Contact Name</string>
+    <string name="emergency_contact_phone">Emergency Contact Phone</string>
+    <string name="save">Save</string>
+    <string name="delete_contact">Delete Contact</string>
+    <string name="call_now">Call Now</string>
+    <string name="edit_contact">Edit Contact</string>
+    <string name="emergency_contact_display">Emergency Contact: %1$s \u2013 %2$s</string>
+    <string name="emergency_contact_hint">Emergency Contact Number</string>
+    <string name="save_contact">Save Contact</string>
+    <string name="call_emergency">Call Emergency</string>
+    
+    <!-- Notifications -->
+    <string name="alarm_channel_name">Emergency Alerts</string>
+    <string name="alarm_channel_description">Critical patient alerts and notifications</string>
+    <string name="danger_alert_title">DANGER DETECTED!</string>
+    <string name="danger_alert_message">Patient needs immediate assistance</string>
+    
+    <!-- API -->
+    <string name="api_base_url">http://192.168.1.100:5000/</string>
+    <string name="api_key">SECRET_ESP32_KEY</string>
+    
+    <!-- Errors -->
+    <string name="network_error">Network connection error</string>
+    <string name="location_error">Unable to get location</string>
+    <string name="maps_error">Maps not available</string>
+</resources>
+

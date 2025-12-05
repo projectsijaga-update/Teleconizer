@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warna dasar -->
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+
+    <!-- Warna utama sesuai logo SIJAGA -->
+    <color name="primary">#1E4D8B</color> <!-- Biru tua seperti perisai -->
+    <color name="primary_dark">#153A66</color> <!-- Biru lebih gelap -->
+    <color name="accent">#FFA726</color> <!-- Oranye dari bentuk hati -->
+
+    <!-- Warna tambahan -->
+    <color name="background">#FFFFFFFF</color> <!-- Latar belakang putih -->
+    <color name="text_primary">#1E4D8B</color> <!-- Teks utama biru -->
+    <color name="text_accent">#FFA726</color> <!-- Teks aksen oranye -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+    
+    <!-- Menu colors -->
+    <color name="menu_text_blue">#1565C0</color>
+</resources>
