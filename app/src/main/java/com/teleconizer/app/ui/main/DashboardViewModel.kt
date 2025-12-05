@@ -17,7 +17,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _patients = MutableLiveData<List<Patient>>()
     val patients: LiveData<List<Patient>> = _patients
 
-    // Nama variabel disesuaikan dengan DashboardActivity (isAnyPatientInDanger)
     private val _isAnyPatientInDanger = MutableLiveData<Boolean>()
     val isAnyPatientInDanger: LiveData<Boolean> = _isAnyPatientInDanger
 
@@ -35,7 +34,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         currentList = deviceRepo.getSavedPatients()
         _patients.value = currentList
         
-        // Restart listeners
+        // Bersihkan listener lama agar tidak duplikat
         listenerJobs.values.forEach { it.cancel() }
         listenerJobs.clear()
         
@@ -44,7 +43,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    // Nama fungsi disesuaikan dengan DashboardActivity (addNewDevice)
     fun addNewDevice(name: String, mac: String) {
         deviceRepo.addPatient(name, mac)
         loadSavedDevices() // Reload list dan listener
@@ -72,7 +70,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun updatePatientData(id: String, statusData: DeviceStatus) {
-        // ID sekarang String, jadi pencarian aman
         val index = currentList.indexOfFirst { it.id == id }
         if (index != -1) {
             val oldData = currentList[index]

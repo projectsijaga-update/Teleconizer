@@ -61,15 +61,13 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 
-    // Firebase BOM and Realtime Database (Firestore removed)
+    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
-
-    // Library Auth
     implementation("com.google.firebase:firebase-auth")
 
-    // Retrofit for API calls
+    // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
@@ -89,4 +87,14 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+// --- FIX KHUSUS KALI LINUX (AARCH64) ---
+// Memaksa Gradle menggunakan aapt2 versi ARM64
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "com.android.tools.build" && requested.name == "aapt2") {
+            useTarget("com.android.tools.build:aapt2:${requested.version}:linux-aarch64")
+        }
+    }
 }

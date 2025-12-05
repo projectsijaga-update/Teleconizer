@@ -20,12 +20,12 @@ class DeviceRepository(context: Context) {
 
     fun addPatient(name: String, macAddress: String) {
         val list = getSavedPatients()
-        // Cek duplikasi berdasarkan MAC Address
+        // Cek duplikasi MAC
         if (list.none { it.macAddress.equals(macAddress, ignoreCase = true) }) {
             val newPatient = Patient(
-                id = UUID.randomUUID().toString(), // Menggunakan String UUID
+                id = UUID.randomUUID().toString(),
                 name = name,
-                macAddress = macAddress,           // Memasukkan MAC Address
+                macAddress = macAddress,
                 status = "OFFLINE",
                 latitude = 0.0,
                 longitude = 0.0
@@ -41,7 +41,6 @@ class DeviceRepository(context: Context) {
         saveList(list)
     }
 
-    // Fungsi saveList yang sebelumnya hilang/error
     private fun saveList(list: List<Patient>) {
         val json = gson.toJson(list)
         prefs.edit().putString(key, json).apply()
