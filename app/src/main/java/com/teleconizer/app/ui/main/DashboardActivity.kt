@@ -30,25 +30,20 @@ class DashboardActivity : AppCompatActivity() {
     private lateinit var viewModel: DashboardViewModel
     private lateinit var patientAdapter: PatientAdapter
 
-    // Variabel untuk Alarm & Getaran
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. Inisialisasi Binding
         binding = ActivityDashboardBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 2. Setup Toolbar
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = "Dashboard Teleconizer"
 
-        // 3. Inisialisasi ViewModel
         viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
 
-        // 4. Inisialisasi Vibrator (Support Android versi lama & baru)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibrator = vibratorManager.defaultVibrator
@@ -57,21 +52,19 @@ class DashboardActivity : AppCompatActivity() {
             vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
 
-        // 5. Setup RecyclerView & Observer
         setupRecycler()
         observePatients()
         observeAlarm()
     }
 
     private fun setupRecycler() {
-        // Inisialisasi Adapter dengan Callback Klik Item
         patientAdapter = PatientAdapter { patient ->
             val intent = Intent(this, PatientDetailActivity::class.java)
-            intent.putExtra("patient_data", patient)
+            // [PERBAIKAN] Gunakan konstanta dari PatientDetailActivity agar kuncinya cocok
+            intent.putExtra(PatientDetailActivity.EXTRA_PATIENT, patient)
             startActivity(intent)
         }
 
-        // PERBAIKAN: Menggunakan ID 'recyclerPatients' sesuai activity_dashboard.xml
         binding.recyclerPatients.apply {
             layoutManager = LinearLayoutManager(this@DashboardActivity)
             adapter = patientAdapter
@@ -79,14 +72,12 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun observePatients() {
-        // Mengamati perubahan list pasien dari ViewModel
         viewModel.patients.observe(this) { list ->
             patientAdapter.submitList(list)
         }
     }
 
     private fun observeAlarm() {
-        // Mengamati status bahaya GLOBAL (jika ada salah satu pasien JATUH)
         viewModel.isAnyPatientInDanger.observe(this) { isDanger ->
             if (isDanger) {
                 triggerEmergencyAlarm()
@@ -96,20 +87,16 @@ class DashboardActivity : AppCompatActivity() {
         }
     }
 
-    // ================== LOGIKA ALARM ==================
-
     private fun triggerEmergencyAlarm() {
         if (mediaPlayer?.isPlaying == true) return
 
         try {
-            // Pastikan file 'alarm_sound.mp3' ada di folder res/raw
             mediaPlayer = MediaPlayer.create(this, R.raw.alarm_sound)
             mediaPlayer?.isLooping = true
             mediaPlayer?.start()
 
-            // Mengaktifkan Getaran (Vibration)
             if (vibrator?.hasVibrator() == true) {
-                val pattern = longArrayOf(0, 500, 200, 500) // Pola getar
+                val pattern = longArrayOf(0, 500, 200, 500)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
                 } else {
@@ -118,7 +105,6 @@ class DashboardActivity : AppCompatActivity() {
                 }
             }
             
-            // PERBAIKAN: Menggunakan warna 'primary' dari colors.xml (bukan purple_500)
             binding.toolbar.setBackgroundColor(getColor(android.R.color.holo_red_dark))
 
         } catch (e: Exception) {
@@ -134,21 +120,15 @@ class DashboardActivity : AppCompatActivity() {
         }
         
         vibrator?.cancel()
-        
-        // Kembalikan warna toolbar ke warna asli aplikasi
         binding.toolbar.setBackgroundColor(getColor(R.color.primary)) 
     }
-
-    // ================== MENU & NAVIGASI ==================
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_dashboard, menu)
         
-        // Styling teks menu agar berwarna biru (sesuai style sebelumnya)
         val menuTextBlue = ContextCompat.getColor(this, R.color.menu_text_blue)
         for (i in 0 until menu.size()) {
             val menuItem = menu.getItem(i)
-            // PERBAIKAN: Menggunakan ID yang ada di menu_dashboard.xml
             if (menuItem.itemId == R.id.action_emergency_contact || menuItem.itemId == R.id.action_exit) {
                 val title = menuItem.title ?: ""
                 val spannableTitle = android.text.SpannableString(title)
@@ -162,7 +142,6 @@ class DashboardActivity : AppCompatActivity() {
             }
         }
 
-        // Tambahkan tombol "Add Device" secara manual
         val addDeviceItem = menu.add(0, 101, 0, "Add Device")
         addDeviceItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         addDeviceItem.setIcon(android.R.drawable.ic_input_add)
@@ -172,16 +151,14 @@ class DashboardActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            101 -> { // ID Custom untuk Add Device
+            101 -> { 
                 showAddDeviceDialog()
                 true
             }
-            // PERBAIKAN: Menggunakan ID 'action_exit' untuk Logout/Keluar
             R.id.action_exit -> {
                 logoutUser()
                 true
             }
-            // PERBAIKAN: Menggunakan ID 'action_emergency_contact'
             R.id.action_emergency_contact -> {
                 startActivity(Intent(this, EmergencyContactActivity::class.java))
                 true
@@ -189,8 +166,6 @@ class DashboardActivity : AppCompatActivity() {
             else -> super.onOptionsItemSelected(item)
         }
     }
-
-    // ================== DIALOG TAMBAH PERANGKAT ==================
 
     private fun showAddDeviceDialog() {
         val layout = LinearLayout(this)
@@ -230,13 +205,10 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun logoutUser() {
-        // Stop alarm sebelum keluar
         stopEmergencyAlarm()
-        
         try {
             FirebaseAuth.getInstance().signOut()
         } catch (e: Exception) {
-            // Ignore if already signed out
         }
         
         val intent = Intent(this, LoginActivity::class.java)
@@ -250,3 +222,4 @@ class DashboardActivity : AppCompatActivity() {
         stopEmergencyAlarm()
     }
 }
+
