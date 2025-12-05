@@ -66,6 +66,9 @@ dependencies {
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
 
+    // Library Auth
+    implementation("com.google.firebase:firebase-auth")
+
     // Retrofit for API calls
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")

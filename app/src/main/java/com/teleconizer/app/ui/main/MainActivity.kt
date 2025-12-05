@@ -135,11 +135,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         
         // Observe device status from Realtime Database
-        dashboardViewModel.deviceStatus.observe(this) { deviceStatus ->
-            deviceStatus?.let {
-                updateDeviceStatusUI(it)
-            }
-        }
+     //   dashboardViewModel.deviceStatus.observe(this) { deviceStatus ->
+     //       deviceStatus?.let {
+     //           updateDeviceStatusUI(it)
+     //       }
+     //   }
     }
     
     override fun onMapReady(map: GoogleMap) {

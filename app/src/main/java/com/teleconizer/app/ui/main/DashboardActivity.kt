@@ -15,13 +15,13 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.firebase.auth.FirebaseAuth
 import com.teleconizer.app.R
-import com.teleconizer.app.data.model.Patient
 import com.teleconizer.app.databinding.ActivityDashboardBinding
 import com.teleconizer.app.ui.login.LoginActivity
-import com.google.firebase.auth.FirebaseAuth
 import com.teleconizer.app.ui.settings.EmergencyContactActivity
 
 class DashboardActivity : AppCompatActivity() {
@@ -71,7 +71,8 @@ class DashboardActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        binding.rvPatientList.apply {
+        // PERBAIKAN: Menggunakan ID 'recyclerPatients' sesuai activity_dashboard.xml
+        binding.recyclerPatients.apply {
             layoutManager = LinearLayoutManager(this@DashboardActivity)
             adapter = patientAdapter
         }
@@ -81,12 +82,6 @@ class DashboardActivity : AppCompatActivity() {
         // Mengamati perubahan list pasien dari ViewModel
         viewModel.patients.observe(this) { list ->
             patientAdapter.submitList(list)
-            
-            // Tampilkan pesan kosong jika list kosong
-            if (list.isEmpty()) {
-                // Opsional: Anda bisa menambahkan TextView "Empty State" di layout XML
-                // dan mengatur visibilitasnya di sini.
-            }
         }
     }
 
@@ -104,27 +99,26 @@ class DashboardActivity : AppCompatActivity() {
     // ================== LOGIKA ALARM ==================
 
     private fun triggerEmergencyAlarm() {
-        // Mencegah alarm menyala dobel
         if (mediaPlayer?.isPlaying == true) return
 
         try {
-            // Memainkan suara dari folder res/raw/alarm_sound.mp3
+            // Pastikan file 'alarm_sound.mp3' ada di folder res/raw
             mediaPlayer = MediaPlayer.create(this, R.raw.alarm_sound)
             mediaPlayer?.isLooping = true
             mediaPlayer?.start()
 
             // Mengaktifkan Getaran (Vibration)
             if (vibrator?.hasVibrator() == true) {
-                val pattern = longArrayOf(0, 500, 200, 500) // Pola getar: diam, getar, diam, getar
+                val pattern = longArrayOf(0, 500, 200, 500) // Pola getar
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0)) // 0 = repeat
+                    vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
                 } else {
                     @Suppress("DEPRECATION")
                     vibrator?.vibrate(pattern, 0)
                 }
             }
             
-            // Ubah warna toolbar menjadi merah sebagai indikator visual (opsional)
+            // PERBAIKAN: Menggunakan warna 'primary' dari colors.xml (bukan purple_500)
             binding.toolbar.setBackgroundColor(getColor(android.R.color.holo_red_dark))
 
         } catch (e: Exception) {
@@ -133,30 +127,44 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun stopEmergencyAlarm() {
-        // Stop Suara
         if (mediaPlayer?.isPlaying == true) {
             mediaPlayer?.stop()
             mediaPlayer?.release()
             mediaPlayer = null
         }
         
-        // Stop Getaran
         vibrator?.cancel()
         
-        // Kembalikan warna toolbar (sesuaikan dengan warna primary app anda)
-        binding.toolbar.setBackgroundColor(getColor(R.color.purple_500)) 
+        // Kembalikan warna toolbar ke warna asli aplikasi
+        binding.toolbar.setBackgroundColor(getColor(R.color.primary)) 
     }
 
     // ================== MENU & NAVIGASI ==================
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Menambahkan menu "Add Device" & "Logout"
         menuInflater.inflate(R.menu.menu_dashboard, menu)
         
-        // Menambahkan tombol Add Device secara programmatis (jika belum ada di XML)
-        // Jika di menu_dashboard.xml sudah ada item, bagian ini aman dihapus/disesuaikan
+        // Styling teks menu agar berwarna biru (sesuai style sebelumnya)
+        val menuTextBlue = ContextCompat.getColor(this, R.color.menu_text_blue)
+        for (i in 0 until menu.size()) {
+            val menuItem = menu.getItem(i)
+            // PERBAIKAN: Menggunakan ID yang ada di menu_dashboard.xml
+            if (menuItem.itemId == R.id.action_emergency_contact || menuItem.itemId == R.id.action_exit) {
+                val title = menuItem.title ?: ""
+                val spannableTitle = android.text.SpannableString(title)
+                spannableTitle.setSpan(
+                    android.text.style.ForegroundColorSpan(menuTextBlue),
+                    0,
+                    title.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                menuItem.title = spannableTitle
+            }
+        }
+
+        // Tambahkan tombol "Add Device" secara manual
         val addDeviceItem = menu.add(0, 101, 0, "Add Device")
-        addDeviceItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+        addDeviceItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         addDeviceItem.setIcon(android.R.drawable.ic_input_add)
         
         return true
@@ -168,12 +176,13 @@ class DashboardActivity : AppCompatActivity() {
                 showAddDeviceDialog()
                 true
             }
-            R.id.action_logout -> {
+            // PERBAIKAN: Menggunakan ID 'action_exit' untuk Logout/Keluar
+            R.id.action_exit -> {
                 logoutUser()
                 true
             }
-            R.id.action_settings -> {
-                // Contoh navigasi ke setting kontak darurat
+            // PERBAIKAN: Menggunakan ID 'action_emergency_contact'
+            R.id.action_emergency_contact -> {
                 startActivity(Intent(this, EmergencyContactActivity::class.java))
                 true
             }
@@ -184,7 +193,6 @@ class DashboardActivity : AppCompatActivity() {
     // ================== DIALOG TAMBAH PERANGKAT ==================
 
     private fun showAddDeviceDialog() {
-        // Membuat Layout Dialog secara dinamis
         val layout = LinearLayout(this)
         layout.orientation = LinearLayout.VERTICAL
         layout.setPadding(60, 40, 60, 10)
@@ -194,8 +202,7 @@ class DashboardActivity : AppCompatActivity() {
         layout.addView(nameInput)
 
         val macInput = EditText(this)
-        macInput.hint = "MAC Address (Contoh: AABBCC112233)"
-        // Menambahkan sedikit margin antar input
+        macInput.hint = "MAC Address (Lihat di Serial Monitor ESP32)"
         val params = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
@@ -204,17 +211,14 @@ class DashboardActivity : AppCompatActivity() {
         macInput.layoutParams = params
         layout.addView(macInput)
 
-        // Membangun Dialog
         AlertDialog.Builder(this)
             .setTitle("Tambah Perangkat Baru")
-            .setMessage("Masukkan Identitas Perangkat ESP32")
             .setView(layout)
-            .setPositiveButton("Tambah") { _, _ ->
+            .setPositiveButton("Simpan") { _, _ ->
                 val name = nameInput.text.toString().trim()
                 val mac = macInput.text.toString().trim()
                 
                 if (name.isNotEmpty() && mac.isNotEmpty()) {
-                    // Panggil ViewModel untuk menyimpan
                     viewModel.addNewDevice(name, mac)
                     Toast.makeText(this, "Perangkat berhasil ditambahkan!", Toast.LENGTH_SHORT).show()
                 } else {
@@ -226,7 +230,15 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun logoutUser() {
-        FirebaseAuth.getInstance().signOut()
+        // Stop alarm sebelum keluar
+        stopEmergencyAlarm()
+        
+        try {
+            FirebaseAuth.getInstance().signOut()
+        } catch (e: Exception) {
+            // Ignore if already signed out
+        }
+        
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
@@ -235,7 +247,6 @@ class DashboardActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Pastikan alarm mati saat aplikasi ditutup total
         stopEmergencyAlarm()
     }
 }
