@@ -6,94 +6,117 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.teleconizer.app.data.model.Patient
 import com.teleconizer.app.data.model.DeviceStatus
+import com.teleconizer.app.data.model.Patient
 import com.teleconizer.app.data.realtime.RealtimeDatabaseService
+import com.teleconizer.app.data.repository.DeviceRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
-	private val _patients = MutableLiveData<List<Patient>>()
-	val patients: LiveData<List<Patient>> = _patients
+    private val _patients = MutableLiveData<List<Patient>>()
+    val patients: LiveData<List<Patient>> = _patients
 
-	private val _deviceStatus = MutableLiveData<DeviceStatus?>()
-	val deviceStatus: LiveData<DeviceStatus?> = _deviceStatus
+    private val _isAnyPatientInDanger = MutableLiveData<Boolean>()
+    val isAnyPatientInDanger: LiveData<Boolean> = _isAnyPatientInDanger
 
-	private val _isAliceInDanger = MutableLiveData<Boolean>()
-	val isAliceInDanger: LiveData<Boolean> = _isAliceInDanger
+    private val realtimeService = RealtimeDatabaseService()
+    private val deviceRepo = DeviceRepository(application)
+    
+    // Kita simpan list di memori untuk manipulasi cepat
+    private var currentList = mutableListOf<Patient>()
+    
+    // Map untuk menyimpan Job listener agar bisa dibatalkan jika perlu
+    private val listenerJobs = mutableMapOf<String, Job>()
 
-	private val realtimeService = RealtimeDatabaseService()
+    init {
+        loadSavedDevices()
+    }
 
-	// Dynamic Zainabun
-	private var alicePatient = Patient(
-		id = 1,
-		name = "Zainabun",
-		status = "SAFE",
-		latitude = 0.0,
-		longitude = 0.0
-	)
+    private fun loadSavedDevices() {
+        currentList = deviceRepo.getSavedPatients()
+        _patients.value = currentList
+        
+        // Mulai listen untuk setiap perangkat yang tersimpan
+        currentList.forEach { patient ->
+            startListeningToDevice(patient.id, patient.macAddress)
+        }
+    }
 
-	// Other dummy patients (optional)
-	private val otherPatients = listOf(
-		Patient(2, "Laham", "SAFE", -6.202, 106.818),
-		Patient(3, "Siti", "SAFE", -6.203, 106.819),
-		Patient(4, "Ipin", "SAFE", -6.204, 106.820),
-		Patient(5, "Husna", "SAFE", -6.205, 106.821)
-	)
+    fun addNewDevice(name: String, mac: String) {
+        deviceRepo.addPatient(name, mac)
+        // Reload list
+        val updatedList = deviceRepo.getSavedPatients()
+        
+        // Cari item baru
+        val newItem = updatedList.find { it.macAddress.equals(mac, ignoreCase = true) }
+        newItem?.let { 
+            currentList.add(it)
+            _patients.value = currentList
+            startListeningToDevice(it.id, it.macAddress)
+        }
+    }
+    
+    fun deleteDevice(patient: Patient) {
+        // Hentikan listener Firebase untuk perangkat ini
+        listenerJobs[patient.id]?.cancel()
+        listenerJobs.remove(patient.id)
+        
+        // Hapus dari penyimpanan
+        deviceRepo.removePatient(patient.id)
+        currentList.removeAll { it.id == patient.id }
+        _patients.value = currentList
+    }
 
-	init {
-		Log.d("DashboardViewModel", "ViewModel initialized")
-		updatePatientList()
-		startRealtimeStatusUpdates()
-	}
+    private fun startListeningToDevice(id: String, macAddress: String) {
+        // Jangan duplikasi listener
+        if (listenerJobs.containsKey(id)) return
 
-	private fun updatePatientList() {
-		val combined = mutableListOf<Patient>()
-		combined.add(alicePatient)
-		combined.addAll(otherPatients)
-		_patients.postValue(combined)
-	}
+        val job = viewModelScope.launch {
+            realtimeService.getStatusUpdates(macAddress).collect { status ->
+                if (status != null) {
+                    updatePatientData(id, status)
+                }
+            }
+        }
+        listenerJobs[id] = job
+    }
 
-	private fun startRealtimeStatusUpdates() {
-		Log.d("DashboardViewModel", "Listening to Firebase...")
-		viewModelScope.launch {
-			realtimeService.getStatusUpdates().collect { status ->
-				if (status != null) {
-					Log.d("DashboardViewModel", "✅ Firebase update received: $status")
-					_deviceStatus.postValue(status)
-					updateAlice(status)
-				} else {
-					Log.w("DashboardViewModel", "⚠️ Null status from Firebase")
-				}
-			}
-		}
-	}
+    private fun updatePatientData(id: String, statusData: DeviceStatus) {
+        val index = currentList.indexOfFirst { it.id == id }
+        if (index != -1) {
+            val oldData = currentList[index]
+            
+            // Konversi status text
+            val newStatusDisplay = when (statusData.status?.lowercase()) {
+                "aman" -> "SAFE"
+                "jatuh" -> "DANGER"
+                else -> statusData.status ?: "UNKNOWN"
+            }
 
-	private fun updateAlice(deviceStatus: DeviceStatus) {
-		val newStatus = when (deviceStatus.status?.lowercase()) {
-			"aman" -> "SAFE"
-			"jatuh" -> "DANGER"
-			else -> "SAFE"
-		}
+            val updatedPatient = oldData.copy(
+                status = newStatusDisplay,
+                latitude = statusData.latitude ?: oldData.latitude,
+                longitude = statusData.longitude ?: oldData.longitude
+            )
 
-		alicePatient = alicePatient.copy(
-			status = newStatus,
-			latitude = deviceStatus.latitude ?: alicePatient.latitude,
-			longitude = deviceStatus.longitude ?: alicePatient.longitude
-		)
+            currentList[index] = updatedPatient
+            _patients.postValue(currentList.toList()) // Trigger UI update
 
-		updatePatientList()
+            checkGlobalAlarm()
+        }
+    }
 
-		updateAlarmState(newStatus)
-
-		Log.d("DashboardViewModel", "✅ Zainabun updated: $alicePatient")
-	}
-
-	private fun updateAlarmState(displayStatus: String) {
-		val isDanger = displayStatus == "DANGER"
-		if (isDanger != (_isAliceInDanger.value == true)) {
-			_isAliceInDanger.postValue(isDanger)
-			Log.d("AlarmUpdate", "✅ Zainabun alarm changed: $isDanger")
-		}
-	}
+    private fun checkGlobalAlarm() {
+        // Cek jika ADA SATU SAJA pasien yang statusnya DANGER
+        val danger = currentList.any { 
+            it.status.equals("DANGER", ignoreCase = true) || 
+            it.status.equals("JATUH", ignoreCase = true) 
+        }
+        
+        if (_isAnyPatientInDanger.value != danger) {
+            _isAnyPatientInDanger.postValue(danger)
+        }
+    }
 }

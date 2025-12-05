@@ -29,11 +29,13 @@ data class EmergencyContact(
 
 @Parcelize
 data class Patient(
-    val id: Int,
+    val id: String,
     val name: String,
+    val macAddress: String,
     val status: String,
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
+    val lastUpdate: Long = 0 
 ) : Parcelable
 
 @Parcelize
@@ -41,6 +43,5 @@ data class DeviceStatus(
     val latitude: Double?,
     val longitude: Double?,
     val status: String?,
-    val timestamp: String? = null
+    val timestamp: Long? = null 
 ) : Parcelable
-
