@@ -18,105 +18,109 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _patients = MutableLiveData<List<Patient>>()
     val patients: LiveData<List<Patient>> = _patients
 
-    private val _isAnyPatientInDanger = MutableLiveData<Boolean>()
-    val isAnyPatientInDanger: LiveData<Boolean> = _isAnyPatientInDanger
+    private val _isAliceInDanger = MutableLiveData<Boolean>() // Global Alarm
+    val isAliceInDanger: LiveData<Boolean> = _isAliceInDanger
 
     private val realtimeService = RealtimeDatabaseService()
-    private val deviceRepo = DeviceRepository(application)
+    private val repository = DeviceRepository(application)
     
-    // Kita simpan list di memori untuk manipulasi cepat
-    private var currentList = mutableListOf<Patient>()
-    
-    // Map untuk menyimpan Job listener agar bisa dibatalkan jika perlu
+    // Map untuk menyimpan Job listener per device (Key: Mac Address)
     private val listenerJobs = mutableMapOf<String, Job>()
+    
+    // List internal untuk memantau status terkini
+    private var currentPatientList = mutableListOf<Patient>()
+    // Map untuk menghubungkan Patient ID ke MAC Address
+    private val patientMacMap = mutableMapOf<Int, String>()
 
     init {
         loadSavedDevices()
     }
 
     private fun loadSavedDevices() {
-        currentList = deviceRepo.getSavedPatients()
-        _patients.value = currentList
+        val savedDevices = repository.getDeviceList()
+        currentPatientList.clear()
+        patientMacMap.clear()
         
-        // Mulai listen untuk setiap perangkat yang tersimpan
-        currentList.forEach { patient ->
-            startListeningToDevice(patient.id, patient.macAddress)
+        // Bersihkan listener lama
+        listenerJobs.values.forEach { it.cancel() }
+        listenerJobs.clear()
+
+        savedDevices.forEach { device ->
+            val id = device.macAddress.hashCode()
+            val patient = Patient(
+                id = id,
+                name = device.name,
+                status = "CONNECTING...",
+                latitude = 0.0,
+                longitude = 0.0
+            )
+            currentPatientList.add(patient)
+            patientMacMap[id] = device.macAddress
+            
+            // Mulai listen ke Firebase untuk device ini
+            startListeningToDevice(device.macAddress, id)
         }
+        _patients.value = currentPatientList
     }
 
-    fun addNewDevice(name: String, mac: String) {
-        deviceRepo.addPatient(name, mac)
-        // Reload list
-        val updatedList = deviceRepo.getSavedPatients()
-        
-        // Cari item baru
-        val newItem = updatedList.find { it.macAddress.equals(mac, ignoreCase = true) }
-        newItem?.let { 
-            currentList.add(it)
-            _patients.value = currentList
-            startListeningToDevice(it.id, it.macAddress)
+    fun addNewUser(name: String, macAddress: String) {
+        val savedList = repository.getDeviceList()
+        if (savedList.none { it.macAddress.equals(macAddress, ignoreCase = true) }) {
+            savedList.add(DeviceRepository.SavedDevice(name, macAddress))
+            repository.saveDeviceList(savedList)
+            loadSavedDevices() // Reload semua
         }
     }
     
-    fun deleteDevice(patient: Patient) {
-        // Hentikan listener Firebase untuk perangkat ini
-        listenerJobs[patient.id]?.cancel()
-        listenerJobs.remove(patient.id)
-        
-        // Hapus dari penyimpanan
-        deviceRepo.removePatient(patient.id)
-        currentList.removeAll { it.id == patient.id }
-        _patients.value = currentList
+    fun deleteUser(patientId: Int) {
+        val mac = patientMacMap[patientId] ?: return
+        repository.removeDevice(mac)
+        loadSavedDevices() // Reload dan stop listener
     }
 
-    private fun startListeningToDevice(id: String, macAddress: String) {
-        // Jangan duplikasi listener
-        if (listenerJobs.containsKey(id)) return
-
+    private fun startListeningToDevice(macAddress: String, patientId: Int) {
         val job = viewModelScope.launch {
+            // Pastikan RealtimeDatabaseService.getStatusUpdates menerima parameter MAC Address!
+            // Anda perlu update RealtimeDatabaseService agar support parameter macAddress
             realtimeService.getStatusUpdates(macAddress).collect { status ->
                 if (status != null) {
-                    updatePatientData(id, status)
+                    updatePatientStatus(patientId, status)
                 }
             }
         }
-        listenerJobs[id] = job
+        listenerJobs[macAddress] = job
     }
 
-    private fun updatePatientData(id: String, statusData: DeviceStatus) {
-        val index = currentList.indexOfFirst { it.id == id }
+    private fun updatePatientStatus(patientId: Int, deviceStatus: DeviceStatus) {
+        val index = currentPatientList.indexOfFirst { it.id == patientId }
         if (index != -1) {
-            val oldData = currentList[index]
+            val oldData = currentPatientList[index]
             
-            // Konversi status text
-            val newStatusDisplay = when (statusData.status?.lowercase()) {
+            val newStatusDisplay = when (deviceStatus.status?.lowercase()) {
                 "aman" -> "SAFE"
                 "jatuh" -> "DANGER"
-                else -> statusData.status ?: "UNKNOWN"
+                else -> deviceStatus.status ?: "UNKNOWN"
             }
 
             val updatedPatient = oldData.copy(
                 status = newStatusDisplay,
-                latitude = statusData.latitude ?: oldData.latitude,
-                longitude = statusData.longitude ?: oldData.longitude
+                latitude = deviceStatus.latitude ?: oldData.latitude,
+                longitude = deviceStatus.longitude ?: oldData.longitude
             )
 
-            currentList[index] = updatedPatient
-            _patients.postValue(currentList.toList()) // Trigger UI update
-
+            currentPatientList[index] = updatedPatient
+            _patients.postValue(currentPatientList.toList())
+            
             checkGlobalAlarm()
         }
     }
-
+    
     private fun checkGlobalAlarm() {
-        // Cek jika ADA SATU SAJA pasien yang statusnya DANGER
-        val danger = currentList.any { 
-            it.status.equals("DANGER", ignoreCase = true) || 
-            it.status.equals("JATUH", ignoreCase = true) 
+        val anyDanger = currentPatientList.any { 
+            it.status == "DANGER" || it.status.equals("jatuh", ignoreCase = true) 
         }
-        
-        if (_isAnyPatientInDanger.value != danger) {
-            _isAnyPatientInDanger.postValue(danger)
+        if (_isAliceInDanger.value != anyDanger) {
+            _isAliceInDanger.postValue(anyDanger)
         }
     }
 }
