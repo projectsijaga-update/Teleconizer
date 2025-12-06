@@ -1,6 +1,7 @@
 package com.teleconizer.app.ui.main
 
 import android.Manifest
+import android.content.Context // [PERBAIKAN] Import ini sebelumnya hilang
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -37,6 +38,8 @@ class PatientDetailActivity : AppCompatActivity() {
         setContentView(binding.root)
         
         viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
+        
+        // Menggunakan Context.MODE_PRIVATE yang sekarang sudah dikenali
         prefs = getSharedPreferences("TeleconizerGlobalPrefs", Context.MODE_PRIVATE)
 
         setSupportActionBar(binding.toolbar)
@@ -45,7 +48,6 @@ class PatientDetailActivity : AppCompatActivity() {
         val patient = intent.getParcelableExtra<Patient>(EXTRA_PATIENT)
         if (patient != null) {
             bindPatient(patient)
-            // Alarm logic jika status bahaya
             if (patient.status.equals("DANGER", ignoreCase = true) || 
                 patient.status.equals("JATUH", ignoreCase = true)) {
                 startAlarm()
@@ -63,25 +65,21 @@ class PatientDetailActivity : AppCompatActivity() {
     private fun setupButtons(patient: Patient) {
         binding.btnBack.setOnClickListener { finish() }
         
-        // Tombol STOP ALARM
         binding.btnStopAlarm.setOnClickListener {
             stopAlarm()
             Toast.makeText(this, "Alarm Dihentikan", Toast.LENGTH_SHORT).show()
         }
 
-        // Tombol HAPUS USER (Menggunakan ID yang valid)
         binding.btnDeleteContact?.text = "Hapus Perangkat Ini"
         binding.btnDeleteContact?.setOnClickListener {
              AlertDialog.Builder(this)
                 .setTitle("Hapus Perangkat?")
                 .setMessage("Apakah anda yakin ingin menghapus ${patient.name} dari daftar?")
                 .setPositiveButton("Ya") { _, _ ->
-                    // [PERBAIKAN] Menggunakan repository langsung untuk menghapus by ID
                     val repo = DeviceRepository(this)
                     repo.removePatient(patient.id)
                     
                     Toast.makeText(this, "Perangkat dihapus.", Toast.LENGTH_LONG).show()
-                    // Kembali ke dashboard (yang akan otomatis refresh karena onResume/init ulang)
                     val intent = Intent(this, DashboardActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(intent)
@@ -111,20 +109,20 @@ class PatientDetailActivity : AppCompatActivity() {
     }
 
     private fun updateContact(index: Int, newNumber: String) {
-        contactList[index] = newNumber
-        saveToGlobal()
-        phoneAdapter.notifyItemChanged(index)
+        if (index in contactList.indices) {
+            contactList[index] = newNumber
+            saveContacts()
+            phoneAdapter.notifyItemChanged(index)
+        }
     }
 
     private fun deleteContact(index: Int) {
-        contactList.removeAt(index)
-        saveToGlobal()
-        phoneAdapter.notifyItemRemoved(index)
-    }
-
-    private fun saveToGlobal() {
-        // Simpan balik ke Global Prefs agar sinkron
-        prefs.edit().putStringSet("GlobalContacts", contactList.toSet()).apply()
+        if (index in contactList.indices) {
+            contactList.removeAt(index)
+            saveContacts()
+            phoneAdapter.notifyItemRemoved(index)
+            phoneAdapter.notifyItemRangeChanged(index, contactList.size)
+        }
     }
     
     private fun showAddContactDialog() {
@@ -146,7 +144,7 @@ class PatientDetailActivity : AppCompatActivity() {
     }
 
     private fun saveContacts() {
-        prefs.edit().putStringSet("saved_contacts", contactList.toSet()).apply()
+        prefs.edit().putStringSet("GlobalContacts", contactList.toSet()).apply()
         binding.btnCall.isEnabled = contactList.isNotEmpty()
     }
 
@@ -159,10 +157,8 @@ class PatientDetailActivity : AppCompatActivity() {
                        
         binding.tvStatus.setTextColor(if(isDanger) getColor(android.R.color.holo_red_dark) else getColor(android.R.color.holo_green_dark))
 
-        // Tampilkan Lokasi
         binding.tvCoordinates.text = "Lat: ${patient.latitude}\nLon: ${patient.longitude}"
 
-        // Tombol Maps
         binding.btnOpenInMaps.setOnClickListener {
             if (patient.latitude != 0.0 && patient.longitude != 0.0) {
                 val uri = Uri.parse("geo:${patient.latitude},${patient.longitude}?q=${patient.latitude},${patient.longitude}(${patient.name})")
@@ -171,7 +167,7 @@ class PatientDetailActivity : AppCompatActivity() {
                 try {
                     startActivity(intent)
                 } catch (e: Exception) {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${patient.latitude},${patient.longitude}")))
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://googleusercontent.com/maps.google.com/maps?q=${patient.latitude},${patient.longitude}")))
                 }
             } else {
                 Toast.makeText(this, "Lokasi belum tersedia (0.0)", Toast.LENGTH_SHORT).show()
