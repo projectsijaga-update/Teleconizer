@@ -3,9 +3,13 @@ package com.teleconizer.app.ui.settings
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.teleconizer.app.data.model.ContactModel
 import com.teleconizer.app.databinding.ActivityEmergencyContactBinding
 import com.teleconizer.app.ui.main.PhoneNumberAdapter
 
@@ -14,56 +18,87 @@ class EmergencyContactActivity : AppCompatActivity() {
     private lateinit var binding: ActivityEmergencyContactBinding
     private lateinit var prefs: SharedPreferences
     private lateinit var adapter: PhoneNumberAdapter
-    private var contactList = mutableListOf<String>()
+    private var contactList = mutableListOf<ContactModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityEmergencyContactBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // GUNAKAN NAMA PREFS YANG SAMA DI SEMUA HALAMAN (Global)
         prefs = getSharedPreferences("TeleconizerGlobalPrefs", Context.MODE_PRIVATE)
 
         setupList()
         
         binding.btnSave.setOnClickListener {
+            val name = binding.etName.text.toString().trim()
             val phone = binding.etPhone.text.toString().trim()
-            if (phone.isNotEmpty()) {
-                contactList.add(phone)
+            if (name.isNotEmpty() && phone.isNotEmpty()) {
+                contactList.add(ContactModel(name, phone))
                 saveToGlobal()
                 adapter.notifyDataSetChanged()
+                binding.etName.setText("")
                 binding.etPhone.setText("")
                 Toast.makeText(this, "Nomor tersimpan", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Isi Nama dan Nomor", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun setupList() {
-        // Ambil data dari Global Prefs
         val savedSet = prefs.getStringSet("GlobalContacts", emptySet()) ?: emptySet()
-        contactList = savedSet.toMutableList()
+        // Konversi String "Nama|Nomor" kembali ke ContactModel
+        contactList = savedSet.map { 
+            val parts = it.split("|")
+            if (parts.size >= 2) ContactModel(parts[0], parts[1]) else ContactModel("Unknown", it)
+        }.toMutableList()
 
         adapter = PhoneNumberAdapter(
             contacts = contactList,
-            onEdit = { newNum, idx -> 
-                contactList[idx] = newNum
-                saveToGlobal()
-                adapter.notifyItemChanged(idx)
-            },
+            onEdit = { contact, idx -> showEditDialog(contact, idx) },
             onDelete = { idx ->
                 contactList.removeAt(idx)
                 saveToGlobal()
-                adapter.notifyDataSetChanged()
+                adapter.notifyItemRemoved(idx)
             }
         )
 
-        // Pastikan di layout XML ada RecyclerView dengan id rvContacts
-        // Jika belum ada, tambahkan di activity_emergency_contact.xml
-        // Untuk sementara, kita asumsikan Anda punya list di sana atau hanya input field.
-        // Jika hanya input field, bagian adapter ini bisa disesuaikan.
+        // Pastikan ada RecyclerView di layout XML Anda (jika tidak, bagian ini akan crash saat runtime)
+        // Jika Anda menghapus fitur ini dari menu utama, kode ini aman dibiarkan asal bisa compile.
+    }
+
+    private fun showEditDialog(contact: ContactModel, index: Int) {
+        val layout = LinearLayout(this)
+        layout.orientation = LinearLayout.VERTICAL
+        layout.setPadding(50, 40, 50, 10)
+
+        val etName = EditText(this)
+        etName.setText(contact.name)
+        layout.addView(etName)
+
+        val etPhone = EditText(this)
+        etPhone.setText(contact.number)
+        layout.addView(etPhone)
+
+        AlertDialog.Builder(this)
+            .setTitle("Edit Kontak")
+            .setView(layout)
+            .setPositiveButton("Simpan") { _, _ ->
+                val newName = etName.text.toString()
+                val newPhone = etPhone.text.toString()
+                if (newName.isNotEmpty() && newPhone.isNotEmpty()) {
+                    contactList[index] = ContactModel(newName, newPhone)
+                    saveToGlobal()
+                    adapter.notifyItemChanged(index)
+                }
+            }
+            .setNegativeButton("Batal", null)
+            .show()
     }
 
     private fun saveToGlobal() {
-        prefs.edit().putStringSet("GlobalContacts", contactList.toSet()).apply()
+        // Simpan sebagai String "Nama|Nomor" karena SharedPreferences tidak bisa simpan Object
+        val set = contactList.map { "${it.name}|${it.number}" }.toSet()
+        prefs.edit().putStringSet("GlobalContacts", set).apply()
     }
 }
