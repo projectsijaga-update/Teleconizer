@@ -1,13 +1,8 @@
 package com.teleconizer.app.ui.main
 
-import android.content.Context
 import android.content.Intent
-import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
@@ -22,7 +17,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.teleconizer.app.R
 import com.teleconizer.app.databinding.ActivityDashboardBinding
 import com.teleconizer.app.ui.login.LoginActivity
-import com.teleconizer.app.ui.settings.EmergencyContactActivity
 import com.teleconizer.app.service.AlarmService
 
 class DashboardActivity : AppCompatActivity() {
@@ -30,9 +24,6 @@ class DashboardActivity : AppCompatActivity() {
     private lateinit var binding: ActivityDashboardBinding
     private lateinit var viewModel: DashboardViewModel
     private lateinit var patientAdapter: PatientAdapter
-
-    private var mediaPlayer: MediaPlayer? = null
-    private var vibrator: Vibrator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +36,7 @@ class DashboardActivity : AppCompatActivity() {
 
         viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
 
+        // [PENTING] Nyalakan Service Pemantau Latar Belakang
         val serviceIntent = Intent(this, AlarmService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
@@ -54,7 +46,7 @@ class DashboardActivity : AppCompatActivity() {
 
         setupRecycler()
         observePatients()
-        observeAlarm()
+        // HAPUS observeAlarm() - Biarkan Service yang menangani alarm
     }
 
     private fun setupRecycler() {
@@ -73,70 +65,21 @@ class DashboardActivity : AppCompatActivity() {
     private fun observePatients() {
         viewModel.patients.observe(this) { list ->
             patientAdapter.submitList(list)
-        }
-    }
-
-    private fun observeAlarm() {
-        viewModel.isAnyPatientInDanger.observe(this) { isDanger ->
-            if (isDanger) {
-                triggerEmergencyAlarm()
-            } else {
-                stopEmergencyAlarm()
-            }
-        }
-    }
-
-    private fun triggerEmergencyAlarm() {
-        if (mediaPlayer?.isPlaying == true) return
-
-        try {
-            mediaPlayer = MediaPlayer.create(this, R.raw.alarm_sound)
-            mediaPlayer?.isLooping = true
-            mediaPlayer?.start()
-
-            if (vibrator?.hasVibrator() == true) {
-                val pattern = longArrayOf(0, 500, 200, 500)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
-                } else {
-                    @Suppress("DEPRECATION")
-                    vibrator?.vibrate(pattern, 0)
-                }
-            }
             
-            binding.toolbar.setBackgroundColor(getColor(android.R.color.holo_red_dark))
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun stopEmergencyAlarm() {
-        try {
-            if (mediaPlayer?.isPlaying == true) {
-                mediaPlayer?.stop()
-                mediaPlayer?.release()
-                mediaPlayer = null
+            // Opsional: Ubah warna toolbar jika ada bahaya (hanya visual)
+            val anyDanger = list.any { 
+                it.status.contains("JATUH", true) || it.status.contains("DANGER", true)
             }
-        } catch (e: Exception) {}
-        
-        vibrator?.cancel()
-        binding.toolbar.setBackgroundColor(getColor(R.color.primary)) 
-    }
-
-    // [PERBAIKAN UTAMA] Matikan alarm saat pindah ke halaman lain (Detail Pasien)
-    override fun onStop() {
-        super.onStop()
-        stopEmergencyAlarm()
-    }
-    
-    // Nyalakan lagi saat kembali ke Dashboard jika masih bahaya
-    override fun onStart() {
-        super.onStart()
-        if (viewModel.isAnyPatientInDanger.value == true) {
-            triggerEmergencyAlarm()
+            if (anyDanger) {
+                binding.toolbar.setBackgroundColor(getColor(android.R.color.holo_red_dark))
+            } else {
+                binding.toolbar.setBackgroundColor(getColor(R.color.primary))
+            }
         }
     }
+
+    // [DIHAPUS: triggerEmergencyAlarm, stopEmergencyAlarm, onStop, onStart]
+    // Semua logika suara dan getaran sudah ditangani oleh AlarmService.
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_dashboard, menu)
@@ -144,7 +87,7 @@ class DashboardActivity : AppCompatActivity() {
         val menuTextBlue = ContextCompat.getColor(this, R.color.menu_text_blue)
         for (i in 0 until menu.size()) {
             val menuItem = menu.getItem(i)
-            // [PERBAIKAN] Hapus referensi ke action_emergency_contact yang sudah tidak ada
+            // Hapus action_emergency_contact karena sudah dihapus dari XML
             if (menuItem.itemId == R.id.action_exit) {
                 val title = menuItem.title ?: ""
                 val spannableTitle = android.text.SpannableString(title)
@@ -217,7 +160,11 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun logoutUser() {
-        stopEmergencyAlarm()
+        // Matikan alarm via Service sebelum logout
+        val stopIntent = Intent(this, AlarmService::class.java)
+        stopIntent.action = AlarmService.ACTION_STOP_ALARM
+        startService(stopIntent)
+        
         try {
             FirebaseAuth.getInstance().signOut()
         } catch (e: Exception) {
