@@ -2,11 +2,9 @@ package com.teleconizer.app.ui.main
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -15,11 +13,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.teleconizer.app.R
 import com.teleconizer.app.data.model.ContactModel
 import com.teleconizer.app.data.model.Patient
 import com.teleconizer.app.data.realtime.RealtimeDatabaseService
-import com.teleconizer.app.data.repository.DeviceRepository
 import com.teleconizer.app.databinding.ActivityPatientDetailBinding
 import kotlinx.coroutines.launch
 
@@ -70,6 +66,7 @@ class PatientDetailActivity : AppCompatActivity() {
 
     private fun startSyncingContacts() {
         lifecycleScope.launch {
+            // Memantau perubahan kontak dari Firebase secara Realtime
             realtimeService.getDeviceInfo(currentPatient.macAddress).collect { info ->
                 if (info != null && info.contacts != null) {
                     contactList.clear()
@@ -192,13 +189,11 @@ class PatientDetailActivity : AppCompatActivity() {
         binding.btnDeleteContact.setOnClickListener {
              AlertDialog.Builder(this)
                 .setTitle("Hapus User?")
-                .setMessage("Hapus ${currentPatient.name} dari daftar? Data akan terhapus untuk semua pengguna aplikasi.")
+                .setMessage("Hapus ${currentPatient.name} dari daftar aplikasi? Data di cloud juga akan dihapus.")
                 .setPositiveButton("Ya") { _, _ ->
-                    // Panggil service langsung untuk hapus
+                    // Panggil fungsi delete di service (tanpa repo lokal lagi karena kita sudah cloud-first)
                     realtimeService.deleteDeviceInfo(currentPatient.macAddress)
-                    
-                    Toast.makeText(this, "User dihapus.", Toast.LENGTH_SHORT).show()
-                    
+
                     val intent = Intent(this, DashboardActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(intent)
@@ -206,6 +201,7 @@ class PatientDetailActivity : AppCompatActivity() {
                 }
                 .setNegativeButton("Batal", null).show()
         }
+    }
 
     private fun startAlarm() {
         try {
