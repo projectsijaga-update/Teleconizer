@@ -2,10 +2,10 @@ package com.teleconizer.app.ui.main
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.Toast
@@ -27,7 +27,7 @@ class PatientDetailActivity : AppCompatActivity() {
     private var contactList = mutableListOf<String>()
     
     private var mediaPlayer: MediaPlayer? = null
-    private val realtimeService = RealtimeDatabaseService() // Instance Service
+    private val realtimeService = RealtimeDatabaseService()
     private lateinit var currentPatient: Patient
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,9 +42,8 @@ class PatientDetailActivity : AppCompatActivity() {
         if (patientData != null) {
             currentPatient = patientData
             bindUI(currentPatient)
-            startSyncingContacts() // Mulai sync kontak dari Firebase
+            startSyncingContacts()
             
-            // Cek Alarm
             if (currentPatient.status == "DANGER" || currentPatient.status.equals("JATUH", true)) {
                 startAlarm()
             }
@@ -61,14 +60,12 @@ class PatientDetailActivity : AppCompatActivity() {
     private fun bindUI(patient: Patient) {
         binding.toolbar.title = patient.name
         binding.tvStatus.text = patient.status.uppercase()
-        
         val isDanger = patient.status.equals("DANGER", true) || patient.status.equals("JATUH", true)
         binding.tvStatus.setTextColor(if(isDanger) getColor(android.R.color.holo_red_dark) else getColor(android.R.color.holo_green_dark))
         binding.tvCoordinates.text = "Lat: ${patient.latitude}\nLon: ${patient.longitude}"
     }
 
     private fun startSyncingContacts() {
-        // Dengarkan perubahan kontak dari Firebase secara Realtime
         lifecycleScope.launch {
             realtimeService.getDeviceInfo(currentPatient.macAddress).collect { info ->
                 if (info != null && info.contacts != null) {
@@ -86,13 +83,11 @@ class PatientDetailActivity : AppCompatActivity() {
             onEdit = { newNum, idx -> updateContact(idx, newNum) },
             onDelete = { idx -> deleteContact(idx) }
         )
-        
         binding.rvPhoneNumbers.layoutManager = LinearLayoutManager(this)
         binding.rvPhoneNumbers.adapter = phoneAdapter
     }
 
     private fun saveContactsToFirebase() {
-        // Simpan Nama dan Kontak terbaru ke Firebase
         realtimeService.saveDeviceInfo(currentPatient.macAddress, currentPatient.name, contactList)
     }
 
@@ -113,7 +108,7 @@ class PatientDetailActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        binding.btnBack.setOnClickListener { finish() } // Back button handled by toolbar now usually
+        // [PERBAIKAN] Menghapus binding.btnBack karena tombol sudah dihapus di XML
         
         binding.btnOpenInMaps.setOnClickListener {
             val uri = Uri.parse("geo:${currentPatient.latitude},${currentPatient.longitude}?q=${currentPatient.latitude},${currentPatient.longitude}(${currentPatient.name})")
