@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.parcelize.Parcelize
 
+// Model untuk Patient (User)
 @Parcelize
 data class Patient(
     val id: String,
@@ -13,10 +14,10 @@ data class Patient(
     val status: String,
     val latitude: Double,
     val longitude: Double,
-    // Kita tambahkan list kontak di objek lokal agar mudah diakses
-    val contacts: List<String> = emptyList() 
+    val contacts: List<String> = emptyList()
 ) : Parcelable
 
+// Model untuk Status Device dari Firebase
 @Parcelize
 data class DeviceStatus(
     val latitude: Double?,
@@ -25,8 +26,26 @@ data class DeviceStatus(
     val timestamp: Long? = null
 ) : Parcelable
 
-// [BARU] Model untuk sinkronisasi Info User di Firebase
+// Model untuk Info Tambahan (Kontak) dari Firebase
 data class DeviceInfo(
     val name: String? = null,
     val contacts: List<String>? = null
+)
+
+// [DITAMBAHKAN] Model SensorData (yang hilang sebelumnya)
+@Parcelize
+data class SensorData(
+    val status: String,
+    val lat: Double,
+    val lon: Double,
+    val timestamp: String? = null
+) : Parcelable
+
+// [DITAMBAHKAN] Model EmergencyContact (yang hilang sebelumnya)
+@Entity(tableName = "emergency_contact")
+data class EmergencyContact(
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+    val name: String,
+    val phoneNumber: String
 )
