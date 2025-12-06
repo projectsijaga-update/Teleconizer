@@ -126,22 +126,7 @@ class DashboardActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_dashboard, menu)
         
-        val menuTextBlue = ContextCompat.getColor(this, R.color.menu_text_blue)
-        for (i in 0 until menu.size()) {
-            val menuItem = menu.getItem(i)
-            if (menuItem.itemId == R.id.action_emergency_contact || menuItem.itemId == R.id.action_exit) {
-                val title = menuItem.title ?: ""
-                val spannableTitle = android.text.SpannableString(title)
-                spannableTitle.setSpan(
-                    android.text.style.ForegroundColorSpan(menuTextBlue),
-                    0,
-                    title.length,
-                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-                menuItem.title = spannableTitle
-            }
-        }
-
+        // Tambahkan tombol "Add Device"
         val addDeviceItem = menu.add(0, 101, 0, "Add Device")
         addDeviceItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         addDeviceItem.setIcon(android.R.drawable.ic_input_add)
@@ -159,10 +144,7 @@ class DashboardActivity : AppCompatActivity() {
                 logoutUser()
                 true
             }
-            R.id.action_emergency_contact -> {
-                startActivity(Intent(this, EmergencyContactActivity::class.java))
-                true
-            }
+            // Case action_emergency_contact DIHAPUS
             else -> super.onOptionsItemSelected(item)
         }
     }
