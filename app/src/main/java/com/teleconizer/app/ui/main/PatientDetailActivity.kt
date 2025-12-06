@@ -2,11 +2,9 @@ package com.teleconizer.app.ui.main
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -15,8 +13,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-// [PENTING] Import resource R agar ikon dan layout dikenali
-import com.teleconizer.app.R 
+// [PERBAIKAN] Pastikan import R ada
+import com.teleconizer.app.R
 import com.teleconizer.app.data.model.ContactModel
 import com.teleconizer.app.data.model.Patient
 import com.teleconizer.app.data.realtime.RealtimeDatabaseService
@@ -72,14 +70,13 @@ class PatientDetailActivity : AppCompatActivity() {
     private fun startSyncingContacts() {
         lifecycleScope.launch {
             realtimeService.getDeviceInfo(currentPatient.macAddress).collect { info ->
-                // [PERBAIKAN] Pastikan null check aman
                 if (info != null) {
-                    val newContacts = info.contacts
-                    if (newContacts != null) {
-                        contactList.clear()
-                        contactList.addAll(newContacts)
-                        phoneAdapter.notifyDataSetChanged()
-                    }
+                    // [PERBAIKAN] Menggunakan elvis operator ?: agar aman jika contacts null
+                    val remoteContacts = info.contacts ?: emptyList()
+                    
+                    contactList.clear()
+                    contactList.addAll(remoteContacts)
+                    phoneAdapter.notifyDataSetChanged()
                 }
             }
         }
