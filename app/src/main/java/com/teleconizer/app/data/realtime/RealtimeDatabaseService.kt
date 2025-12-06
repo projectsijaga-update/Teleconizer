@@ -11,50 +11,35 @@ import kotlinx.coroutines.flow.callbackFlow
 
 class RealtimeDatabaseService {
 
-    // [PERBAIKAN UTAMA] Gunakan URL spesifik Asia Tenggara
+    // URL KHUSUS ASIA (Wajib untuk project Anda)
     private val db = FirebaseDatabase.getInstance("https://sijaga-95af3-default-rtdb.asia-southeast1.firebasedatabase.app/")
 
-    // 1. Status Updates
     fun getStatusUpdates(macAddress: String): Flow<DeviceStatus?> = callbackFlow {
         val cleanMac = macAddress.replace(":", "").uppercase()
         val path = "devices/$cleanMac/status"
         val ref = db.getReference(path)
 
-        Log.d("RealtimeDB", "Connecting to: $path at Asia-Southeast1")
+        Log.d("RealtimeDB", "Connecting to: $path")
 
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
-                    // Gunakan safe casting (convert ke String dulu baru ke Double/Long) untuk menghindari crash tipe data
-                    val status = snapshot.child("status").getValue(String::class.java) ?: "OFFLINE"
-                    
-                    val lat = try {
-                        snapshot.child("latitude").getValue(Double::class.java) ?: 0.0
-                    } catch (e: Exception) { 0.0 }
+                    val status = snapshot.child("status").getValue(String::class.java)
+                    val lat = try { snapshot.child("latitude").getValue(Double::class.java) ?: 0.0 } catch(e:Exception){0.0}
+                    val lon = try { snapshot.child("longitude").getValue(Double::class.java) ?: 0.0 } catch(e:Exception){0.0}
+                    val ts = try { snapshot.child("timestamp").getValue(Long::class.java) ?: 0L } catch(e:Exception){0L}
 
-                    val lon = try {
-                        snapshot.child("longitude").getValue(Double::class.java) ?: 0.0
-                    } catch (e: Exception) { 0.0 }
-
-                    val ts = try {
-                        snapshot.child("timestamp").getValue(Long::class.java) ?: 0L
-                    } catch (e: Exception) { 0L }
-
-                    trySend(DeviceStatus(lat, lon, status, ts))
-                    
-                } catch (e: Exception) { 
-                    Log.e("RealtimeDB", "Parsing Error: ${e.message}")
-                }
+                    if (status != null) {
+                        trySend(DeviceStatus(lat, lon, status, ts))
+                    }
+                } catch (e: Exception) { Log.e("RealtimeDB", "Error", e) }
             }
-            override fun onCancelled(error: DatabaseError) {
-                Log.e("RealtimeDB", "Cancelled: ${error.message}")
-            }
+            override fun onCancelled(error: DatabaseError) {}
         }
         ref.addValueEventListener(listener)
         awaitClose { ref.removeEventListener(listener) }
     }
 
-    // 2. Info Updates (Nama & Kontak)
     fun getDeviceInfo(macAddress: String): Flow<DeviceInfo?> = callbackFlow {
         val cleanMac = macAddress.replace(":", "").uppercase()
         val path = "devices/$cleanMac/info"
@@ -75,14 +60,12 @@ class RealtimeDatabaseService {
         awaitClose { ref.removeEventListener(listener) }
     }
 
-    // 3. Save Info
     fun saveDeviceInfo(macAddress: String, name: String, contacts: List<ContactModel>) {
         val cleanMac = macAddress.replace(":", "").uppercase()
         val path = "devices/$cleanMac/info"
         db.getReference(path).setValue(DeviceInfo(name, contacts))
     }
 
-    // 4. Delete Device
     fun deleteDeviceInfo(macAddress: String) {
         val cleanMac = macAddress.replace(":", "").uppercase()
         db.getReference("devices/$cleanMac").removeValue()
