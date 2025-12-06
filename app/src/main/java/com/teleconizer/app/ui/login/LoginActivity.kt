@@ -21,23 +21,25 @@ class LoginActivity : AppCompatActivity() {
 
         viewModel = ViewModelProvider(this)[LoginViewModel::class.java]
 
+        // 1. Tombol Login
         binding.btnLogin.setOnClickListener {
-            // [PERBAIKAN] Menggunakan etEmail sesuai layout activity_login.xml yang baru
             val email = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
 
             if (email.isNotEmpty() && password.isNotEmpty()) {
                 viewModel.login(email, password)
             } else {
-                Toast.makeText(this, "Email dan Password harus diisi", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Mohon isi Email dan Password", Toast.LENGTH_SHORT).show()
             }
         }
 
+        // 2. Tombol Register
         binding.tvRegister.setOnClickListener {
             val email = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
             
             if (email.isNotEmpty() && password.isNotEmpty()) {
+                // Pastikan fungsi register ada di LoginViewModel
                 viewModel.register(email, password)
             } else {
                 Toast.makeText(this, "Isi Email & Password untuk mendaftar", Toast.LENGTH_SHORT).show()
@@ -48,6 +50,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun observeViewModel() {
+        // Mengamati status login dari ViewModel
         viewModel.loginState.observe(this) { state ->
             when (state) {
                 is LoginViewModel.LoginState.Success -> {
