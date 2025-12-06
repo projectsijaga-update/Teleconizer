@@ -20,7 +20,6 @@ class DeviceRepository(context: Context) {
 
     fun addPatient(name: String, macAddress: String) {
         val list = getSavedPatients()
-        // Cek duplikasi MAC
         if (list.none { it.macAddress.equals(macAddress, ignoreCase = true) }) {
             val newPatient = Patient(
                 id = UUID.randomUUID().toString(),
