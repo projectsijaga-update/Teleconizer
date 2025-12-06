@@ -9,67 +9,56 @@ import com.teleconizer.app.databinding.ActivityLoginBinding
 import com.teleconizer.app.ui.main.DashboardActivity
 
 class LoginActivity : AppCompatActivity() {
-    
+
     private lateinit var binding: ActivityLoginBinding
     private lateinit var viewModel: LoginViewModel
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
-        setupViewModel()
-        setupClickListeners()
-        observeViewModel()
-    }
-    
-    private fun setupViewModel() {
+
         viewModel = ViewModelProvider(this)[LoginViewModel::class.java]
-    }
-    
-    private fun setupClickListeners() {
+
         binding.btnLogin.setOnClickListener {
-            val username = binding.etUsername.text.toString().trim()
+            // [PERBAIKAN] Menggunakan etEmail sesuai layout activity_login.xml yang baru
+            val email = binding.etEmail.text.toString().trim()
+            val password = binding.etPassword.text.toString().trim()
+
+            if (email.isNotEmpty() && password.isNotEmpty()) {
+                viewModel.login(email, password)
+            } else {
+                Toast.makeText(this, "Email dan Password harus diisi", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.tvRegister.setOnClickListener {
+            val email = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
             
-            // For UI testing, allow static dummy credentials without strict email/password rules
-            if (username == "admin" && password == "1234") {
-                viewModel.login(username, password)
-            } else if (username.isEmpty() || password.isEmpty()) {
-                showError("Invalid credentials")
+            if (email.isNotEmpty() && password.isNotEmpty()) {
+                viewModel.register(email, password)
             } else {
-                // Fall back to dummy auth attempt (will show error inside ViewModel if not match)
-                viewModel.login(username, password)
+                Toast.makeText(this, "Isi Email & Password untuk mendaftar", Toast.LENGTH_SHORT).show()
             }
         }
+
+        observeViewModel()
     }
-    
+
     private fun observeViewModel() {
-        viewModel.loginResult.observe(this) { result ->
-            when (result) {
-                is LoginResult.Success -> {
-                    navigateToMain()
+        viewModel.loginState.observe(this) { state ->
+            when (state) {
+                is LoginViewModel.LoginState.Success -> {
+                    startActivity(Intent(this, DashboardActivity::class.java))
+                    finish()
                 }
-                is LoginResult.Error -> {
-                    showError(result.message)
+                is LoginViewModel.LoginState.Error -> {
+                    Toast.makeText(this, state.message, Toast.LENGTH_SHORT).show()
                 }
-                is LoginResult.Loading -> {
-                    // Show loading state if needed
-                }
+                else -> {}
             }
         }
-    }
-    
-    // Removed strict validation to accommodate dummy login (admin / 1234)
-    
-    private fun navigateToMain() {
-        val intent = Intent(this, DashboardActivity::class.java)
-        startActivity(intent)
-        finish()
-    }
-    
-    private fun showError(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 }
-
