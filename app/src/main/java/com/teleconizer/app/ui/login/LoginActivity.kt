@@ -21,39 +21,28 @@ class LoginActivity : AppCompatActivity() {
 
         viewModel = ViewModelProvider(this)[LoginViewModel::class.java]
 
-        // 1. Tombol Login
+        // Tombol Login
         binding.btnLogin.setOnClickListener {
-            val email = binding.etEmail.text.toString().trim()
+            val username = binding.etUsername.text.toString().trim() // ID berubah jadi etUsername
             val password = binding.etPassword.text.toString().trim()
 
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                viewModel.login(email, password)
+            if (username.isNotEmpty() && password.isNotEmpty()) {
+                viewModel.login(username, password)
             } else {
-                Toast.makeText(this, "Mohon isi Email dan Password", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Mohon isi Username dan Password", Toast.LENGTH_SHORT).show()
             }
         }
 
-        // 2. Tombol Register
-        binding.tvRegister.setOnClickListener {
-            val email = binding.etEmail.text.toString().trim()
-            val password = binding.etPassword.text.toString().trim()
-            
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                // Pastikan fungsi register ada di LoginViewModel
-                viewModel.register(email, password)
-            } else {
-                Toast.makeText(this, "Isi Email & Password untuk mendaftar", Toast.LENGTH_SHORT).show()
-            }
-        }
+        // Tombol Register sudah dihapus dari XML, jadi kodenya dihapus juga.
 
         observeViewModel()
     }
 
     private fun observeViewModel() {
-        // Mengamati status login dari ViewModel
         viewModel.loginState.observe(this) { state ->
             when (state) {
                 is LoginViewModel.LoginState.Success -> {
+                    Toast.makeText(this, "Login Berhasil!", Toast.LENGTH_SHORT).show()
                     startActivity(Intent(this, DashboardActivity::class.java))
                     finish()
                 }
