@@ -23,6 +23,7 @@ import com.teleconizer.app.R
 import com.teleconizer.app.databinding.ActivityDashboardBinding
 import com.teleconizer.app.ui.login.LoginActivity
 import com.teleconizer.app.ui.settings.EmergencyContactActivity
+import com.teleconizer.app.service.AlarmService
 
 class DashboardActivity : AppCompatActivity() {
 
@@ -50,6 +51,13 @@ class DashboardActivity : AppCompatActivity() {
         } else {
             @Suppress("DEPRECATION")
             vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+
+        val serviceIntent = Intent(this, AlarmService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
         }
 
         setupRecycler()
