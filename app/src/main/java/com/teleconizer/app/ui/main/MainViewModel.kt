@@ -15,7 +15,6 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     
-    // Gunakan Repository & Service yang sama dengan Dashboard agar sinkron
     private val deviceRepo = DeviceRepository(application)
     private val realtimeService = RealtimeDatabaseService()
     
@@ -35,34 +34,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun startDataPolling() {
-        // Ambil perangkat pertama yang tersimpan untuk ditampilkan di Main Activity
         val devices = deviceRepo.getSavedPatients()
         if (devices.isNotEmpty()) {
-            val firstDeviceMac = devices[0].macAddress
-            startListeningToFirebase(firstDeviceMac)
+            // Ambil device pertama untuk ditampilkan di halaman utama
+            startListeningToFirebase(devices[0].macAddress)
         }
     }
     
     private fun startListeningToFirebase(macAddress: String) {
-        stopDataPolling() // Hentikan job lama jika ada
-        
+        stopDataPolling()
         pollingJob = viewModelScope.launch {
-            // Dengarkan data Realtime dari Firebase (Bukan Dummy!)
             realtimeService.getStatusUpdates(macAddress).collectLatest { status ->
                 if (status != null) {
-                    // Konversi DeviceStatus (Firebase) ke SensorData (UI)
                     val newData = SensorData(
                         status = status.status ?: "OFFLINE",
                         lat = status.latitude ?: 0.0,
                         lon = status.longitude ?: 0.0,
                         timestamp = status.timestamp?.toString()
                     )
-                    
                     _sensorData.postValue(newData)
                     
-                    // Cek Bahaya
-                    val isDanger = newData.status.equals("JATUH", ignoreCase = true) || 
-                                   newData.status.equals("DANGER", ignoreCase = true)
+                    val isDanger = newData.status.contains("JATUH", ignoreCase = true) || 
+                                   newData.status.contains("DANGER", ignoreCase = true)
                     _isDangerDetected.postValue(isDanger)
                 }
             }
@@ -75,7 +68,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun saveEmergencyContact(contact: EmergencyContact) {
-        // Simpan ke LiveData sementara (atau implementasikan simpan ke Prefs global jika perlu)
         _emergencyContact.value = contact
     }
 
@@ -84,7 +76,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     private fun loadEmergencyContact() {
-        // Load dummy awal atau dari Prefs jika sudah diimplementasikan
         _emergencyContact.value = EmergencyContact(name = "Belum Ada", phoneNumber = "")
     }
 }
