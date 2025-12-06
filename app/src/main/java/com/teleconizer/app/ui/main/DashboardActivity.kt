@@ -60,7 +60,6 @@ class DashboardActivity : AppCompatActivity() {
     private fun setupRecycler() {
         patientAdapter = PatientAdapter { patient ->
             val intent = Intent(this, PatientDetailActivity::class.java)
-            // [PERBAIKAN] Gunakan konstanta dari PatientDetailActivity agar kuncinya cocok
             intent.putExtra(PatientDetailActivity.EXTRA_PATIENT, patient)
             startActivity(intent)
         }
@@ -113,20 +112,51 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun stopEmergencyAlarm() {
-        if (mediaPlayer?.isPlaying == true) {
-            mediaPlayer?.stop()
-            mediaPlayer?.release()
-            mediaPlayer = null
-        }
+        try {
+            if (mediaPlayer?.isPlaying == true) {
+                mediaPlayer?.stop()
+                mediaPlayer?.release()
+                mediaPlayer = null
+            }
+        } catch (e: Exception) {}
         
         vibrator?.cancel()
         binding.toolbar.setBackgroundColor(getColor(R.color.primary)) 
     }
 
+    // [PERBAIKAN UTAMA] Matikan alarm saat pindah ke halaman lain (Detail Pasien)
+    override fun onStop() {
+        super.onStop()
+        stopEmergencyAlarm()
+    }
+    
+    // Nyalakan lagi saat kembali ke Dashboard jika masih bahaya
+    override fun onStart() {
+        super.onStart()
+        if (viewModel.isAnyPatientInDanger.value == true) {
+            triggerEmergencyAlarm()
+        }
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_dashboard, menu)
         
-        // Tambahkan tombol "Add Device"
+        val menuTextBlue = ContextCompat.getColor(this, R.color.menu_text_blue)
+        for (i in 0 until menu.size()) {
+            val menuItem = menu.getItem(i)
+            if (menuItem.itemId == R.id.action_emergency_contact || menuItem.itemId == R.id.action_exit) {
+                val title = menuItem.title ?: ""
+                val spannableTitle = android.text.SpannableString(title)
+                spannableTitle.setSpan(
+                    android.text.style.ForegroundColorSpan(menuTextBlue),
+                    0,
+                    title.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                menuItem.title = spannableTitle
+            }
+        }
+
         val addDeviceItem = menu.add(0, 101, 0, "Add Device")
         addDeviceItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         addDeviceItem.setIcon(android.R.drawable.ic_input_add)
@@ -144,7 +174,6 @@ class DashboardActivity : AppCompatActivity() {
                 logoutUser()
                 true
             }
-            // Case action_emergency_contact DIHAPUS
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -198,10 +227,4 @@ class DashboardActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopEmergencyAlarm()
-    }
 }
-
