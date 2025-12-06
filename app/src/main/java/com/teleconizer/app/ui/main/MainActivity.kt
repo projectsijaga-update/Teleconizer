@@ -20,6 +20,8 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.teleconizer.app.data.model.EmergencyContact
+import com.teleconizer.app.data.model.SensorData
 import com.teleconizer.app.R
 import com.teleconizer.app.databinding.ActivityMainBinding
 import com.teleconizer.app.data.model.EmergencyContact
@@ -319,4 +321,5 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         viewModel.stopDataPolling()
     }
 }
+
 
