@@ -56,9 +56,16 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
     
     fun deleteDevice(patient: Patient) {
+        // 1. Stop Listener
         listenerJobs[patient.id]?.cancel()
         listenerJobs.remove(patient.id)
+        
+        // 2. Hapus Lokal
         deviceRepo.removePatient(patient.id)
+        
+        // 3. Hapus Firebase
+        realtimeService.deleteDeviceInfo(patient.macAddress)
+        
         loadSavedDevices()
     }
 
