@@ -16,10 +16,7 @@ import kotlinx.coroutines.launch
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     
     private val realtimeService = RealtimeDatabaseService()
-    // Kita butuh akses ke DeviceRepository untuk mengetahui MAC Address perangkat yang tersimpan
-    // Karena DeviceRepository belum diinject, kita inisialisasi manual (untuk sementara)
-    // PENTING: Pastikan DeviceRepository.kt sudah ada dan benar.
-    private val deviceRepo = com.teleconizer.app.data.repository.DeviceRepository(application)
+    private val deviceRepo = DeviceRepository(application)
     
     private val _sensorData = MutableLiveData<SensorData?>()
     val sensorData: LiveData<SensorData?> = _sensorData
@@ -37,36 +34,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun startDataPolling() {
-        // Ambil data device pertama yang tersimpan di aplikasi
-        // Karena MainViewModel ini untuk demo single device di halaman depan
-        val savedDevices = deviceRepo.getSavedPatients() // Fungsi ini harus ada di DeviceRepository
-        
+        val savedDevices = deviceRepo.getSavedPatients()
         if (savedDevices.isNotEmpty()) {
             val firstDeviceMac = savedDevices[0].macAddress
             startListeningToFirebase(firstDeviceMac)
         } else {
-            // Jika belum ada device, tampilkan status kosong
             _sensorData.postValue(SensorData("Belum ada alat", 0.0, 0.0, null))
         }
     }
     
     private fun startListeningToFirebase(macAddress: String) {
         stopDataPolling()
-        
         pollingJob = viewModelScope.launch {
-            // Memanggil getStatusUpdates dari RealtimeDatabaseService
             realtimeService.getStatusUpdates(macAddress).collectLatest { status ->
                 if (status != null) {
+                    // [PERBAIKAN] Akses properti dengan safe call atau nilai default
+                    val statusStr = status.status ?: "OFFLINE"
+                    val lat = status.latitude ?: 0.0
+                    val lon = status.longitude ?: 0.0
+                    val ts = status.timestamp?.toString() ?: ""
+
                     val newData = SensorData(
-                        status = status.status ?: "OFFLINE",
-                        lat = status.latitude ?: 0.0,
-                        lon = status.longitude ?: 0.0,
-                        timestamp = status.timestamp?.toString()
+                        status = statusStr,
+                        lat = lat,
+                        lon = lon,
+                        timestamp = ts
                     )
                     _sensorData.postValue(newData)
                     
-                    val isDanger = newData.status.contains("JATUH", ignoreCase = true) || 
-                                   newData.status.contains("DANGER", ignoreCase = true)
+                    val isDanger = statusStr.contains("JATUH", ignoreCase = true) || 
+                                   statusStr.contains("DANGER", ignoreCase = true)
                     _isDangerDetected.postValue(isDanger)
                 }
             }
