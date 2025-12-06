@@ -144,7 +144,8 @@ class DashboardActivity : AppCompatActivity() {
         val menuTextBlue = ContextCompat.getColor(this, R.color.menu_text_blue)
         for (i in 0 until menu.size()) {
             val menuItem = menu.getItem(i)
-            if (menuItem.itemId == R.id.action_emergency_contact || menuItem.itemId == R.id.action_exit) {
+            // [PERBAIKAN] Hapus referensi ke action_emergency_contact yang sudah tidak ada
+            if (menuItem.itemId == R.id.action_exit) {
                 val title = menuItem.title ?: ""
                 val spannableTitle = android.text.SpannableString(title)
                 spannableTitle.setSpan(
