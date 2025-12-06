@@ -186,17 +186,20 @@ class PatientDetailActivity : AppCompatActivity() {
 
         binding.btnStopAlarm.setOnClickListener {
             stopAlarm()
-            Toast.makeText(this, "Alarm Matikan", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Alarm Dimatikan", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnDeleteContact.setOnClickListener {
              AlertDialog.Builder(this)
                 .setTitle("Hapus User?")
-                .setMessage("Hapus ${currentPatient.name} dari daftar aplikasi? Data di cloud juga akan dihapus.")
+                // Update pesan agar akurat
+                .setMessage("Hapus ${currentPatient.name} dari daftar aplikasi ini? \n(Data sensor perangkat tidak akan dihapus).")
                 .setPositiveButton("Ya") { _, _ ->
                     val repo = DeviceRepository(this)
-                    repo.removePatient(currentPatient.id)
-                    realtimeService.deleteDeviceInfo(currentPatient.macAddress)
+                    repo.removePatient(currentPatient.id) // Hapus dari HP
+                    
+                    // Panggil fungsi delete yang baru (Hanya hapus info)
+                    realtimeService.deleteDeviceInfo(currentPatient.macAddress) 
 
                     val intent = Intent(this, DashboardActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
