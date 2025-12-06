@@ -2,18 +2,19 @@ package com.teleconizer.app.ui.main
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.teleconizer.app.R
+import com.teleconizer.app.data.model.ContactModel
 import com.teleconizer.app.data.model.Patient
 import com.teleconizer.app.data.realtime.RealtimeDatabaseService
 import com.teleconizer.app.data.repository.DeviceRepository
@@ -24,7 +25,7 @@ class PatientDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPatientDetailBinding
     private lateinit var phoneAdapter: PhoneNumberAdapter
-    private var contactList = mutableListOf<String>()
+    private var contactList = mutableListOf<ContactModel>()
     
     private var mediaPlayer: MediaPlayer? = null
     private val realtimeService = RealtimeDatabaseService()
@@ -80,7 +81,7 @@ class PatientDetailActivity : AppCompatActivity() {
     private fun setupRecycler() {
         phoneAdapter = PhoneNumberAdapter(
             contacts = contactList,
-            onEdit = { newNum, idx -> updateContact(idx, newNum) },
+            onEdit = { contact, idx -> showEditContactDialog(contact, idx) },
             onDelete = { idx -> deleteContact(idx) }
         )
         binding.rvPhoneNumbers.layoutManager = LinearLayoutManager(this)
@@ -91,12 +92,59 @@ class PatientDetailActivity : AppCompatActivity() {
         realtimeService.saveDeviceInfo(currentPatient.macAddress, currentPatient.name, contactList)
     }
 
-    private fun updateContact(index: Int, newNumber: String) {
-        if (index in contactList.indices) {
-            contactList[index] = newNumber
-            saveContactsToFirebase()
-            phoneAdapter.notifyItemChanged(index)
+    // [FIX BUG 3 & 4] Dialog dengan Nama dan Nomor
+    private fun showAddContactDialog() {
+        showContactDialog(null, -1)
+    }
+
+    private fun showEditContactDialog(contact: ContactModel, index: Int) {
+        showContactDialog(contact, index)
+    }
+
+    private fun showContactDialog(existingContact: ContactModel?, index: Int) {
+        val layout = LinearLayout(this)
+        layout.orientation = LinearLayout.VERTICAL
+        layout.setPadding(50, 40, 50, 10)
+
+        val etName = EditText(this)
+        etName.hint = "Nama Kontak (Misal: Ayah)"
+        layout.addView(etName)
+
+        val etNumber = EditText(this)
+        etNumber.hint = "Nomor HP (0812...)"
+        etNumber.inputType = android.text.InputType.TYPE_CLASS_PHONE
+        layout.addView(etNumber)
+
+        // Isi data jika mode edit
+        if (existingContact != null) {
+            etName.setText(existingContact.name)
+            etNumber.setText(existingContact.number)
         }
+
+        val title = if (existingContact == null) "Tambah Kontak" else "Edit Kontak"
+
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(layout)
+            .setPositiveButton("Simpan") { _, _ ->
+                val name = etName.text.toString().trim()
+                val number = etNumber.text.toString().trim()
+
+                if (name.isNotEmpty() && number.isNotEmpty()) {
+                    val newContact = ContactModel(name, number)
+                    if (index == -1) {
+                        contactList.add(newContact) // Tambah baru
+                    } else {
+                        contactList[index] = newContact // Update
+                    }
+                    saveContactsToFirebase()
+                    phoneAdapter.notifyDataSetChanged()
+                } else {
+                    Toast.makeText(this, "Nama dan Nomor harus diisi", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Batal", null)
+            .show()
     }
 
     private fun deleteContact(index: Int) {
@@ -108,8 +156,7 @@ class PatientDetailActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        // [PERBAIKAN] Menghapus binding.btnBack karena tombol sudah dihapus di XML
-        
+        // Tombol Maps
         binding.btnOpenInMaps.setOnClickListener {
             val uri = Uri.parse("geo:${currentPatient.latitude},${currentPatient.longitude}?q=${currentPatient.latitude},${currentPatient.longitude}(${currentPatient.name})")
             val intent = Intent(Intent.ACTION_VIEW, uri)
@@ -120,20 +167,7 @@ class PatientDetailActivity : AppCompatActivity() {
         }
 
         binding.btnAddContact.setOnClickListener {
-            val input = EditText(this)
-            input.hint = "0812..."
-            AlertDialog.Builder(this)
-                .setTitle("Tambah Kontak")
-                .setView(input)
-                .setPositiveButton("Simpan") { _, _ ->
-                    if (input.text.isNotEmpty()) {
-                        contactList.add(input.text.toString())
-                        saveContactsToFirebase()
-                        phoneAdapter.notifyDataSetChanged()
-                    }
-                }
-                .setNegativeButton("Batal", null)
-                .show()
+            showAddContactDialog()
         }
 
         binding.btnCall.setOnClickListener {
@@ -141,11 +175,12 @@ class PatientDetailActivity : AppCompatActivity() {
                 Toast.makeText(this, "Belum ada kontak darurat", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val nums = contactList.toTypedArray()
+            val items = contactList.map { "${it.name} (${it.number})" }.toTypedArray()
             AlertDialog.Builder(this)
-                .setTitle("Pilih Nomor")
-                .setItems(nums) { _, w ->
-                    startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${nums[w]}")))
+                .setTitle("Pilih Kontak")
+                .setItems(items) { _, w ->
+                    val number = contactList[w].number
+                    startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
                 }
                 .show()
         }
@@ -155,13 +190,19 @@ class PatientDetailActivity : AppCompatActivity() {
             Toast.makeText(this, "Alarm Matikan", Toast.LENGTH_SHORT).show()
         }
 
+        // [FIX BUG 5] Hapus User dari Firebase juga
         binding.btnDeleteContact.setOnClickListener {
              AlertDialog.Builder(this)
                 .setTitle("Hapus User?")
-                .setMessage("Hapus ${currentPatient.name} dari daftar aplikasi?")
+                .setMessage("Hapus ${currentPatient.name} dari daftar aplikasi? Data di cloud juga akan dihapus.")
                 .setPositiveButton("Ya") { _, _ ->
+                    // 1. Hapus dari Lokal
                     val repo = DeviceRepository(this)
                     repo.removePatient(currentPatient.id)
+                    
+                    // 2. Hapus dari Firebase
+                    realtimeService.deleteDeviceInfo(currentPatient.macAddress)
+
                     val intent = Intent(this, DashboardActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(intent)
@@ -200,4 +241,3 @@ class PatientDetailActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_PATIENT = "extra_patient"
     }
-}
