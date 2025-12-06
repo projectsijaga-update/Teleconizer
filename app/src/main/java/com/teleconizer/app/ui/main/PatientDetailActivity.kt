@@ -71,12 +71,15 @@ class PatientDetailActivity : AppCompatActivity() {
 
     private fun startSyncingContacts() {
         lifecycleScope.launch {
-            // Pastikan RealtimeDatabaseService punya fungsi getDeviceInfo(macAddress)
             realtimeService.getDeviceInfo(currentPatient.macAddress).collect { info ->
-                if (info != null && info.contacts != null) {
-                    contactList.clear()
-                    contactList.addAll(info.contacts)
-                    phoneAdapter.notifyDataSetChanged()
+                // [PERBAIKAN] Pastikan null check aman
+                if (info != null) {
+                    val newContacts = info.contacts
+                    if (newContacts != null) {
+                        contactList.clear()
+                        contactList.addAll(newContacts)
+                        phoneAdapter.notifyDataSetChanged()
+                    }
                 }
             }
         }
