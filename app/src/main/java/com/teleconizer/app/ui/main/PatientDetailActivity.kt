@@ -2,10 +2,14 @@ package com.teleconizer.app.ui.main
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -29,6 +33,8 @@ class PatientDetailActivity : AppCompatActivity() {
     private var contactList = mutableListOf<ContactModel>()
     
     private var mediaPlayer: MediaPlayer? = null
+    private var vibrator: Vibrator? = null // [TAMBAHAN] Variabel Vibrator
+    
     private val realtimeService = RealtimeDatabaseService()
     private lateinit var currentPatient: Patient
 
@@ -39,6 +45,15 @@ class PatientDetailActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        
+        // [TAMBAHAN] Inisialisasi Vibrator
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibrator = vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
 
         val patientData = intent.getParcelableExtra<Patient>(EXTRA_PATIENT)
         if (patientData != null) {
@@ -197,13 +212,31 @@ class PatientDetailActivity : AppCompatActivity() {
                 mediaPlayer?.isLooping = true
                 mediaPlayer?.start()
             }
+            
+            // [TAMBAHAN] Menyalakan getaran agar sama dengan Dashboard
+            if (vibrator?.hasVibrator() == true) {
+                val pattern = longArrayOf(0, 500, 200, 500)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator?.vibrate(pattern, 0)
+                }
+            }
         } catch (e: Exception) {}
     }
 
     private fun stopAlarm() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        try {
+            if (mediaPlayer?.isPlaying == true) {
+                mediaPlayer?.stop()
+                mediaPlayer?.release()
+                mediaPlayer = null
+            }
+        } catch (e: Exception) {}
+        
+        // [TAMBAHAN] Mematikan getaran
+        vibrator?.cancel()
     }
     
     override fun onDestroy() {
