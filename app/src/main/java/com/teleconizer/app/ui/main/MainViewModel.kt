@@ -36,8 +36,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun startDataPolling() {
         val savedDevices = deviceRepo.getSavedPatients()
         if (savedDevices.isNotEmpty()) {
-            val firstDeviceMac = savedDevices[0].macAddress
-            startListeningToFirebase(firstDeviceMac)
+            startListeningToFirebase(savedDevices[0].macAddress)
         } else {
             _sensorData.postValue(SensorData("Belum ada alat", 0.0, 0.0, null))
         }
@@ -46,13 +45,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun startListeningToFirebase(macAddress: String) {
         stopDataPolling()
         pollingJob = viewModelScope.launch {
-            realtimeService.getStatusUpdates(macAddress).collectLatest { status ->
-                if (status != null) {
-                    // [PERBAIKAN] Akses properti dengan safe call atau nilai default
-                    val statusStr = status.status ?: "OFFLINE"
-                    val lat = status.latitude ?: 0.0
-                    val lon = status.longitude ?: 0.0
-                    val ts = status.timestamp?.toString() ?: ""
+            // [PERBAIKAN] Mengakses properti nullable dengan aman
+            realtimeService.getStatusUpdates(macAddress).collectLatest { deviceStatus ->
+                if (deviceStatus != null) {
+                    val statusStr = deviceStatus.status ?: "OFFLINE"
+                    val lat = deviceStatus.latitude ?: 0.0
+                    val lon = deviceStatus.longitude ?: 0.0
+                    val ts = deviceStatus.timestamp?.toString() ?: ""
 
                     val newData = SensorData(
                         status = statusStr,
