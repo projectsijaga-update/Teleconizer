@@ -2,9 +2,11 @@ package com.teleconizer.app.ui.main
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
+import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -92,7 +94,6 @@ class PatientDetailActivity : AppCompatActivity() {
         realtimeService.saveDeviceInfo(currentPatient.macAddress, currentPatient.name, contactList)
     }
 
-    // [FIX BUG 3 & 4] Dialog dengan Nama dan Nomor
     private fun showAddContactDialog() {
         showContactDialog(null, -1)
     }
@@ -115,7 +116,6 @@ class PatientDetailActivity : AppCompatActivity() {
         etNumber.inputType = android.text.InputType.TYPE_CLASS_PHONE
         layout.addView(etNumber)
 
-        // Isi data jika mode edit
         if (existingContact != null) {
             etName.setText(existingContact.name)
             etNumber.setText(existingContact.number)
@@ -133,9 +133,9 @@ class PatientDetailActivity : AppCompatActivity() {
                 if (name.isNotEmpty() && number.isNotEmpty()) {
                     val newContact = ContactModel(name, number)
                     if (index == -1) {
-                        contactList.add(newContact) // Tambah baru
+                        contactList.add(newContact)
                     } else {
-                        contactList[index] = newContact // Update
+                        contactList[index] = newContact
                     }
                     saveContactsToFirebase()
                     phoneAdapter.notifyDataSetChanged()
@@ -156,7 +156,6 @@ class PatientDetailActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        // Tombol Maps
         binding.btnOpenInMaps.setOnClickListener {
             val uri = Uri.parse("geo:${currentPatient.latitude},${currentPatient.longitude}?q=${currentPatient.latitude},${currentPatient.longitude}(${currentPatient.name})")
             val intent = Intent(Intent.ACTION_VIEW, uri)
@@ -190,17 +189,13 @@ class PatientDetailActivity : AppCompatActivity() {
             Toast.makeText(this, "Alarm Matikan", Toast.LENGTH_SHORT).show()
         }
 
-        // [FIX BUG 5] Hapus User dari Firebase juga
         binding.btnDeleteContact.setOnClickListener {
              AlertDialog.Builder(this)
                 .setTitle("Hapus User?")
                 .setMessage("Hapus ${currentPatient.name} dari daftar aplikasi? Data di cloud juga akan dihapus.")
                 .setPositiveButton("Ya") { _, _ ->
-                    // 1. Hapus dari Lokal
                     val repo = DeviceRepository(this)
                     repo.removePatient(currentPatient.id)
-                    
-                    // 2. Hapus dari Firebase
                     realtimeService.deleteDeviceInfo(currentPatient.macAddress)
 
                     val intent = Intent(this, DashboardActivity::class.java)
@@ -241,3 +236,4 @@ class PatientDetailActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_PATIENT = "extra_patient"
     }
+}
