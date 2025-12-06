@@ -45,8 +45,14 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun addNewDevice(name: String, mac: String) {
+        // 1. Simpan di Lokal (agar muncul di list HP sendiri)
         deviceRepo.addPatient(name, mac)
-        loadSavedDevices() // PENTING: Reload agar listener langsung aktif
+        
+        // 2. Simpan ke Firebase (agar HP lain bisa sync nama ini jika mereka add mac yg sama)
+        // Gunakan list kontak kosong untuk inisialisasi
+        realtimeService.saveDeviceInfo(mac, name, emptyList())
+        
+        loadSavedDevices()
     }
     
     fun deleteDevice(patient: Patient) {
