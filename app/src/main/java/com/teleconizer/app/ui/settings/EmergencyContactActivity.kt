@@ -47,7 +47,6 @@ class EmergencyContactActivity : AppCompatActivity() {
 
     private fun setupList() {
         val savedSet = prefs.getStringSet("GlobalContacts", emptySet()) ?: emptySet()
-        // Konversi String "Nama|Nomor" kembali ke ContactModel
         contactList = savedSet.map { 
             val parts = it.split("|")
             if (parts.size >= 2) ContactModel(parts[0], parts[1]) else ContactModel("Unknown", it)
@@ -62,9 +61,6 @@ class EmergencyContactActivity : AppCompatActivity() {
                 adapter.notifyItemRemoved(idx)
             }
         )
-
-        // Pastikan ada RecyclerView di layout XML Anda (jika tidak, bagian ini akan crash saat runtime)
-        // Jika Anda menghapus fitur ini dari menu utama, kode ini aman dibiarkan asal bisa compile.
     }
 
     private fun showEditDialog(contact: ContactModel, index: Int) {
@@ -97,7 +93,6 @@ class EmergencyContactActivity : AppCompatActivity() {
     }
 
     private fun saveToGlobal() {
-        // Simpan sebagai String "Nama|Nomor" karena SharedPreferences tidak bisa simpan Object
         val set = contactList.map { "${it.name}|${it.number}" }.toSet()
         prefs.edit().putStringSet("GlobalContacts", set).apply()
     }
