@@ -184,7 +184,10 @@ class PatientDetailActivity : AppCompatActivity() {
         }
 
         binding.btnStopAlarm.setOnClickListener {
-            stopAlarm()
+            val stopIntent = Intent(this, AlarmService::class.java)
+            stopIntent.action = AlarmService.ACTION_STOP_ALARM
+            startService(stopIntent)
+            
             Toast.makeText(this, "Alarm Dimatikan", Toast.LENGTH_SHORT).show()
         }
 
