@@ -5,22 +5,23 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.teleconizer.app.data.repository.TeleconizerRepository
 import com.teleconizer.app.data.model.EmergencyContact
 import com.teleconizer.app.data.model.SensorData
+import com.teleconizer.app.data.realtime.RealtimeDatabaseService
+import com.teleconizer.app.data.repository.DeviceRepository
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     
-    private val repository = TeleconizerRepository(application)
-    private val apiKey = "SECRET_ESP32_KEY"
+    // Gunakan Repository & Service yang sama dengan Dashboard agar sinkron
+    private val deviceRepo = DeviceRepository(application)
+    private val realtimeService = RealtimeDatabaseService()
     
     private val _sensorData = MutableLiveData<SensorData?>()
     val sensorData: LiveData<SensorData?> = _sensorData
-    
+
     private val _emergencyContact = MutableLiveData<EmergencyContact?>()
     val emergencyContact: LiveData<EmergencyContact?> = _emergencyContact
     
@@ -34,14 +35,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun startDataPolling() {
+        // Ambil perangkat pertama yang tersimpan untuk ditampilkan di Main Activity
+        val devices = deviceRepo.getSavedPatients()
+        if (devices.isNotEmpty()) {
+            val firstDeviceMac = devices[0].macAddress
+            startListeningToFirebase(firstDeviceMac)
+        }
+    }
+    
+    private fun startListeningToFirebase(macAddress: String) {
+        stopDataPolling() // Hentikan job lama jika ada
+        
         pollingJob = viewModelScope.launch {
-            while (true) {
-                try {
-                    fetchLatestSensorData()
-                    delay(5000) // Poll every 5 seconds
-                } catch (e: Exception) {
-                    // Handle error silently and continue polling
-                    delay(10000) // Wait longer on error
+            // Dengarkan data Realtime dari Firebase (Bukan Dummy!)
+            realtimeService.getStatusUpdates(macAddress).collectLatest { status ->
+                if (status != null) {
+                    // Konversi DeviceStatus (Firebase) ke SensorData (UI)
+                    val newData = SensorData(
+                        status = status.status ?: "OFFLINE",
+                        lat = status.latitude ?: 0.0,
+                        lon = status.longitude ?: 0.0,
+                        timestamp = status.timestamp?.toString()
+                    )
+                    
+                    _sensorData.postValue(newData)
+                    
+                    // Cek Bahaya
+                    val isDanger = newData.status.equals("JATUH", ignoreCase = true) || 
+                                   newData.status.equals("DANGER", ignoreCase = true)
+                    _isDangerDetected.postValue(isDanger)
                 }
             }
         }
@@ -52,54 +74,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         pollingJob = null
     }
     
-    private suspend fun fetchLatestSensorData() {
-        // Post static dummy data for UI testing only (no repository or network calls)
-        val dummy = SensorData(
-            status = "Normal",
-            lat = -6.200000,
-            lon = 106.816666,
-            timestamp = null
-        )
-        _sensorData.postValue(dummy)
-        val isDanger = dummy.status.lowercase() == "danger"
-        _isDangerDetected.postValue(isDanger)
-    }
-    
     fun saveEmergencyContact(contact: EmergencyContact) {
-        viewModelScope.launch {
-            repository.saveEmergencyContact(contact)
-            loadEmergencyContact()
-        }
+        // Simpan ke LiveData sementara (atau implementasikan simpan ke Prefs global jika perlu)
+        _emergencyContact.value = contact
     }
-    
+
     fun getLatestEmergencyContact(): EmergencyContact? {
         return _emergencyContact.value
     }
     
     private fun loadEmergencyContact() {
-        viewModelScope.launch {
-            val contact = repository.getLatestEmergencyContact()
-                .first()
-            if (contact != null) {
-                _emergencyContact.postValue(contact)
-            } else {
-                // Provide dummy emergency contact when none exists (UI testing)
-                _emergencyContact.postValue(
-                    EmergencyContact(
-                        name = "Emergency Contact",
-                        phoneNumber = "081234567890"
-                    )
-                )
-            }
-        }
-    }
-    
-    fun refreshData() {
-        viewModelScope.launch {
-            fetchLatestSensorData()
-        }
+        // Load dummy awal atau dari Prefs jika sudah diimplementasikan
+        _emergencyContact.value = EmergencyContact(name = "Belum Ada", phoneNumber = "")
     }
 }
-
-
-
