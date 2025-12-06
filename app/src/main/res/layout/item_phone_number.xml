@@ -12,25 +12,24 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:textSize="16sp"
-        android:textColor="#000000" 
+        android:textColor="#FFFFFF" 
         android:text="0812..." />
 
-	<ImageView
-		android:id="@+id/ivEdit"
-		android:layout_width="24dp"
-		android:layout_height="24dp"
-		android:src="@android:drawable/ic_menu_edit"
-		android:contentDescription="Edit" />
+    <ImageButton
+        android:id="@+id/btnEdit"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@android:drawable/ic_menu_edit"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Edit" />
 
-	<ImageView
-		android:id="@+id/ivDelete"
-		android:layout_width="24dp"
-		android:layout_height="24dp"
-		android:layout_marginStart="12dp"
-		android:src="@android:drawable/ic_menu_delete"
-		android:contentDescription="Delete" />
+    <ImageButton
+        android:id="@+id/btnDelete"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@android:drawable/ic_menu_delete"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Delete"
+        android:tint="#FF0000" />
 
 </LinearLayout>
-
-
-
