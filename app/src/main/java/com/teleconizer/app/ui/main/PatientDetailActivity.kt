@@ -192,15 +192,13 @@ class PatientDetailActivity : AppCompatActivity() {
         binding.btnDeleteContact.setOnClickListener {
              AlertDialog.Builder(this)
                 .setTitle("Hapus User?")
-                // Update pesan agar akurat
-                .setMessage("Hapus ${currentPatient.name} dari daftar aplikasi ini? \n(Data sensor perangkat tidak akan dihapus).")
+                .setMessage("Hapus ${currentPatient.name} dari daftar? Data akan terhapus untuk semua pengguna aplikasi.")
                 .setPositiveButton("Ya") { _, _ ->
-                    val repo = DeviceRepository(this)
-                    repo.removePatient(currentPatient.id) // Hapus dari HP
+                    // Panggil service langsung untuk hapus
+                    realtimeService.deleteDeviceInfo(currentPatient.macAddress)
                     
-                    // Panggil fungsi delete yang baru (Hanya hapus info)
-                    realtimeService.deleteDeviceInfo(currentPatient.macAddress) 
-
+                    Toast.makeText(this, "User dihapus.", Toast.LENGTH_SHORT).show()
+                    
                     val intent = Intent(this, DashboardActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(intent)
@@ -208,7 +206,6 @@ class PatientDetailActivity : AppCompatActivity() {
                 }
                 .setNegativeButton("Batal", null).show()
         }
-    }
 
     private fun startAlarm() {
         try {
