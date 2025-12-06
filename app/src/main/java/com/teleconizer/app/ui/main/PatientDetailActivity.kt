@@ -25,6 +25,7 @@ import com.teleconizer.app.data.realtime.RealtimeDatabaseService
 import com.teleconizer.app.data.repository.DeviceRepository
 import com.teleconizer.app.databinding.ActivityPatientDetailBinding
 import kotlinx.coroutines.launch
+import com.teleconizer.app.service.AlarmService
 
 class PatientDetailActivity : AppCompatActivity() {
 
