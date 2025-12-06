@@ -11,31 +11,44 @@ import kotlinx.coroutines.flow.callbackFlow
 
 class RealtimeDatabaseService {
 
-    private val db = FirebaseDatabase.getInstance()
+    // [PERBAIKAN UTAMA] Gunakan URL spesifik Asia Tenggara
+    private val db = FirebaseDatabase.getInstance("https://sijaga-95af3-default-rtdb.asia-southeast1.firebasedatabase.app/")
 
-    // 1. Status Updates (Tidak berubah)
+    // 1. Status Updates
     fun getStatusUpdates(macAddress: String): Flow<DeviceStatus?> = callbackFlow {
         val cleanMac = macAddress.replace(":", "").uppercase()
         val path = "devices/$cleanMac/status"
         val ref = db.getReference(path)
 
+        Log.d("RealtimeDB", "Connecting to: $path at Asia-Southeast1")
+
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
-                    val status = snapshot.child("status").getValue(String::class.java)
-                    val lat = snapshot.child("latitude").getValue(Double::class.java)
-                    val lon = snapshot.child("longitude").getValue(Double::class.java)
-                    val ts = snapshot.child("timestamp").getValue(Long::class.java)
+                    // Gunakan safe casting (convert ke String dulu baru ke Double/Long) untuk menghindari crash tipe data
+                    val status = snapshot.child("status").getValue(String::class.java) ?: "OFFLINE"
+                    
+                    val lat = try {
+                        snapshot.child("latitude").getValue(Double::class.java) ?: 0.0
+                    } catch (e: Exception) { 0.0 }
 
-                    if (status != null) {
-                        trySend(DeviceStatus(lat, lon, status, ts))
-                    } else {
-                         // Jika status null, coba kirim data kosong/offline agar UI tau
-                         trySend(null)
-                    }
-                } catch (e: Exception) { Log.e("RealtimeDB", "Error status", e) }
+                    val lon = try {
+                        snapshot.child("longitude").getValue(Double::class.java) ?: 0.0
+                    } catch (e: Exception) { 0.0 }
+
+                    val ts = try {
+                        snapshot.child("timestamp").getValue(Long::class.java) ?: 0L
+                    } catch (e: Exception) { 0L }
+
+                    trySend(DeviceStatus(lat, lon, status, ts))
+                    
+                } catch (e: Exception) { 
+                    Log.e("RealtimeDB", "Parsing Error: ${e.message}")
+                }
             }
-            override fun onCancelled(error: DatabaseError) {}
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("RealtimeDB", "Cancelled: ${error.message}")
+            }
         }
         ref.addValueEventListener(listener)
         awaitClose { ref.removeEventListener(listener) }
@@ -51,13 +64,10 @@ class RealtimeDatabaseService {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
                     val name = snapshot.child("name").getValue(String::class.java)
-                    
-                    // Parsing List ContactModel
                     val typeIndicator = object : GenericTypeIndicator<List<ContactModel>>() {}
                     val contacts = snapshot.child("contacts").getValue(typeIndicator) ?: emptyList()
-                    
                     trySend(DeviceInfo(name, contacts))
-                } catch (e: Exception) { Log.e("RealtimeDB", "Error info", e) }
+                } catch (e: Exception) { }
             }
             override fun onCancelled(error: DatabaseError) {}
         }
@@ -69,16 +79,12 @@ class RealtimeDatabaseService {
     fun saveDeviceInfo(macAddress: String, name: String, contacts: List<ContactModel>) {
         val cleanMac = macAddress.replace(":", "").uppercase()
         val path = "devices/$cleanMac/info"
-        val ref = db.getReference(path)
-        val info = DeviceInfo(name, contacts)
-        ref.setValue(info)
+        db.getReference(path).setValue(DeviceInfo(name, contacts))
     }
-    
-    // 4. [FIX BUG 5] Hapus Data User di Firebase
+
+    // 4. Delete Device
     fun deleteDeviceInfo(macAddress: String) {
         val cleanMac = macAddress.replace(":", "").uppercase()
-        // Hapus folder 'info' agar user hilang dari sync, 
-        // Opsional: Hapus folder 'status' juga jika mau bersih total
         db.getReference("devices/$cleanMac").removeValue()
     }
 }
