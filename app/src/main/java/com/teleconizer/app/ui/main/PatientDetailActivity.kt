@@ -2,6 +2,7 @@ package com.teleconizer.app.ui.main
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
@@ -13,7 +14,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-// [PERBAIKAN] Pastikan import R ada
 import com.teleconizer.app.R
 import com.teleconizer.app.data.model.ContactModel
 import com.teleconizer.app.data.model.Patient
@@ -71,9 +71,7 @@ class PatientDetailActivity : AppCompatActivity() {
         lifecycleScope.launch {
             realtimeService.getDeviceInfo(currentPatient.macAddress).collect { info ->
                 if (info != null) {
-                    // [PERBAIKAN] Menggunakan elvis operator ?: agar aman jika contacts null
                     val remoteContacts = info.contacts ?: emptyList()
-                    
                     contactList.clear()
                     contactList.addAll(remoteContacts)
                     phoneAdapter.notifyDataSetChanged()

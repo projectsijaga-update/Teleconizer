@@ -35,7 +35,6 @@ class RealtimeDatabaseService {
                     val ts = safeLong("timestamp")
 
                     trySend(DeviceStatus(lat, lon, statusVal, ts))
-                    
                 } catch (e: Exception) { Log.e("RealtimeDB", "Error", e) }
             }
             override fun onCancelled(error: DatabaseError) {}

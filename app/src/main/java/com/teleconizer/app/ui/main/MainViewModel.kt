@@ -45,7 +45,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun startListeningToFirebase(macAddress: String) {
         stopDataPolling()
         pollingJob = viewModelScope.launch {
-            // [PERBAIKAN] Mengakses properti nullable dengan aman
             realtimeService.getStatusUpdates(macAddress).collectLatest { deviceStatus ->
                 if (deviceStatus != null) {
                     val statusStr = deviceStatus.status ?: "OFFLINE"
