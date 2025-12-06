@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-	<!-- Menu items styled with DashboardOverflowMenuTextStyle (blue text color #1565C0) -->
-	<!-- Applied programmatically in DashboardActivity.onCreateOptionsMenu -->
-	<item
-		android:id="@+id/action_emergency_contact"
-		android:title="Emergency Contact" />
-	<item
-		android:id="@+id/action_exit"
-		android:title="Exit App" />
+    <item
+        android:id="@+id/action_exit"
+        android:title="Exit App" />
 </menu>
-
-
