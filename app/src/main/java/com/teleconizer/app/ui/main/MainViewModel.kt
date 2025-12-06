@@ -15,8 +15,11 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     
-    private val deviceRepo = DeviceRepository(application)
     private val realtimeService = RealtimeDatabaseService()
+    // Kita butuh akses ke DeviceRepository untuk mengetahui MAC Address perangkat yang tersimpan
+    // Karena DeviceRepository belum diinject, kita inisialisasi manual (untuk sementara)
+    // PENTING: Pastikan DeviceRepository.kt sudah ada dan benar.
+    private val deviceRepo = com.teleconizer.app.data.repository.DeviceRepository(application)
     
     private val _sensorData = MutableLiveData<SensorData?>()
     val sensorData: LiveData<SensorData?> = _sensorData
@@ -34,16 +37,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun startDataPolling() {
-        val devices = deviceRepo.getSavedPatients()
-        if (devices.isNotEmpty()) {
-            // Ambil device pertama untuk ditampilkan di halaman utama
-            startListeningToFirebase(devices[0].macAddress)
+        // Ambil data device pertama yang tersimpan di aplikasi
+        // Karena MainViewModel ini untuk demo single device di halaman depan
+        val savedDevices = deviceRepo.getSavedPatients() // Fungsi ini harus ada di DeviceRepository
+        
+        if (savedDevices.isNotEmpty()) {
+            val firstDeviceMac = savedDevices[0].macAddress
+            startListeningToFirebase(firstDeviceMac)
+        } else {
+            // Jika belum ada device, tampilkan status kosong
+            _sensorData.postValue(SensorData("Belum ada alat", 0.0, 0.0, null))
         }
     }
     
     private fun startListeningToFirebase(macAddress: String) {
         stopDataPolling()
+        
         pollingJob = viewModelScope.launch {
+            // Memanggil getStatusUpdates dari RealtimeDatabaseService
             realtimeService.getStatusUpdates(macAddress).collectLatest { status ->
                 if (status != null) {
                     val newData = SensorData(
