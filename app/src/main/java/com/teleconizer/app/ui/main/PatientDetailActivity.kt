@@ -37,7 +37,7 @@ class PatientDetailActivity : AppCompatActivity() {
         setContentView(binding.root)
         
         viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
-        prefs = getSharedPreferences("contact_book", MODE_PRIVATE)
+        prefs = getSharedPreferences("TeleconizerGlobalPrefs", Context.MODE_PRIVATE)
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -93,7 +93,7 @@ class PatientDetailActivity : AppCompatActivity() {
     }
 
     private fun setupContactList() {
-        val savedSet = prefs.getStringSet("saved_contacts", mutableSetOf()) ?: mutableSetOf()
+        val savedSet = prefs.getStringSet("GlobalContacts", mutableSetOf()) ?: mutableSetOf()
         contactList = savedSet.toMutableList()
 
         phoneAdapter = PhoneNumberAdapter(
@@ -111,20 +111,20 @@ class PatientDetailActivity : AppCompatActivity() {
     }
 
     private fun updateContact(index: Int, newNumber: String) {
-        if (index in contactList.indices) {
-            contactList[index] = newNumber
-            saveContacts()
-            phoneAdapter.notifyItemChanged(index)
-        }
+        contactList[index] = newNumber
+        saveToGlobal()
+        phoneAdapter.notifyItemChanged(index)
     }
 
     private fun deleteContact(index: Int) {
-        if (index in contactList.indices) {
-            contactList.removeAt(index)
-            saveContacts()
-            phoneAdapter.notifyItemRemoved(index)
-            phoneAdapter.notifyItemRangeChanged(index, contactList.size)
-        }
+        contactList.removeAt(index)
+        saveToGlobal()
+        phoneAdapter.notifyItemRemoved(index)
+    }
+
+    private fun saveToGlobal() {
+        // Simpan balik ke Global Prefs agar sinkron
+        prefs.edit().putStringSet("GlobalContacts", contactList.toSet()).apply()
     }
     
     private fun showAddContactDialog() {
