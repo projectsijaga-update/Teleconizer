@@ -3,36 +3,42 @@ package com.teleconizer.app.ui.login
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-
-sealed class LoginResult {
-    object Success : LoginResult()
-    data class Error(val message: String) : LoginResult()
-    object Loading : LoginResult()
-}
+import com.google.firebase.auth.FirebaseAuth
 
 class LoginViewModel : ViewModel() {
-    
-    private val _loginResult = MutableLiveData<LoginResult>()
-    val loginResult: LiveData<LoginResult> = _loginResult
-    
-    fun login(email: String, password: String) {
-        _loginResult.value = LoginResult.Loading
-        
-        // Dummy authentication for UI testing: accept only admin / 1234
-        CoroutineScope(Dispatchers.IO).launch {
-            // Simulate short delay to keep UI behavior
-            kotlinx.coroutines.delay(300)
-            if (email == "admin" && password == "1234") {
-                _loginResult.postValue(LoginResult.Success)
-            } else {
-                _loginResult.postValue(LoginResult.Error("Invalid credentials"))
-            }
-        }
-    }
-    
-    // Removed: server-side style validation; replaced by static credential check above
-}
 
+    private val auth = FirebaseAuth.getInstance()
+
+    // State untuk Login/Register
+    sealed class LoginState {
+        object Loading : LoginState()
+        object Success : LoginState()
+        data class Error(val message: String) : LoginState()
+        object Idle : LoginState()
+    }
+
+    private val _loginState = MutableLiveData<LoginState>(LoginState.Idle)
+    val loginState: LiveData<LoginState> = _loginState
+
+    fun login(email: String, pass: String) {
+        _loginState.value = LoginState.Loading
+        auth.signInWithEmailAndPassword(email, pass)
+            .addOnSuccessListener {
+                _loginState.value = LoginState.Success
+            }
+            .addOnFailureListener { e ->
+                _loginState.value = LoginState.Error("Login Gagal: ${e.message}")
+            }
+    }
+
+    fun register(email: String, pass: String) {
+        _loginState.value = LoginState.Loading
+        auth.createUserWithEmailAndPassword(email, pass)
+            .addOnSuccessListener {
+                _loginState.value = LoginState.Success
+            }
+            .addOnFailureListener { e ->
+                _loginState.value = LoginState.Error("Register Gagal: ${e.message}")
+            }
+    }
+}
