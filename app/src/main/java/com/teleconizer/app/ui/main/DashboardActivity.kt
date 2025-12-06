@@ -45,14 +45,6 @@ class DashboardActivity : AppCompatActivity() {
 
         viewModel = ViewModelProvider(this)[DashboardViewModel::class.java]
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibrator = vibratorManager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        }
-
         val serviceIntent = Intent(this, AlarmService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
