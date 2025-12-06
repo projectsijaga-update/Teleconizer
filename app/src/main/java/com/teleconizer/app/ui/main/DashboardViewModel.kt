@@ -34,10 +34,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         currentList = deviceRepo.getSavedPatients()
         _patients.value = currentList
         
-        // Bersihkan listener lama agar tidak duplikat
+        // Hentikan listener lama agar tidak duplikat
         listenerJobs.values.forEach { it.cancel() }
         listenerJobs.clear()
         
+        // Mulai dengarkan ulang semua device
         currentList.forEach { patient ->
             startListeningToDevice(patient.id, patient.macAddress)
         }
@@ -45,13 +46,12 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun addNewDevice(name: String, mac: String) {
         deviceRepo.addPatient(name, mac)
-        loadSavedDevices() // Reload list dan listener
+        loadSavedDevices() // PENTING: Reload agar listener langsung aktif
     }
     
     fun deleteDevice(patient: Patient) {
         listenerJobs[patient.id]?.cancel()
         listenerJobs.remove(patient.id)
-        
         deviceRepo.removePatient(patient.id)
         loadSavedDevices()
     }
@@ -60,6 +60,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         if (listenerJobs.containsKey(id)) return
 
         val job = viewModelScope.launch {
+            // Memanggil fungsi di RealtimeDatabaseService dengan MAC Address
             realtimeService.getStatusUpdates(macAddress).collect { status ->
                 if (status != null) {
                     updatePatientData(id, status)
@@ -74,31 +75,25 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         if (index != -1) {
             val oldData = currentList[index]
             
-            val newStatusDisplay = when (statusData.status?.lowercase()) {
-                "aman" -> "SAFE"
-                "jatuh" -> "DANGER"
-                else -> statusData.status ?: "UNKNOWN"
-            }
+            // Logika Status Aman/Bahaya
+            val rawStatus = statusData.status?.lowercase() ?: "offline"
+            val displayStatus = if (rawStatus.contains("jatuh") || rawStatus.contains("danger")) "DANGER" else "SAFE"
 
             val updatedPatient = oldData.copy(
-                status = newStatusDisplay,
+                status = displayStatus,
                 latitude = statusData.latitude ?: oldData.latitude,
                 longitude = statusData.longitude ?: oldData.longitude
             )
 
             currentList[index] = updatedPatient
-            _patients.postValue(currentList.toList())
+            _patients.postValue(currentList.toList()) // Update UI
 
             checkGlobalAlarm()
         }
     }
 
     private fun checkGlobalAlarm() {
-        val danger = currentList.any { 
-            it.status.equals("DANGER", ignoreCase = true) || 
-            it.status.equals("JATUH", ignoreCase = true) 
-        }
-        
+        val danger = currentList.any { it.status == "DANGER" }
         if (_isAnyPatientInDanger.value != danger) {
             _isAnyPatientInDanger.postValue(danger)
         }
