@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.teleconizer.app.data.model.EmergencyContact
 import com.teleconizer.app.data.model.SensorData
 import com.teleconizer.app.data.repository.TeleconizerRepository
+import com.teleconizer.app.data.model.EmergencyContact
+import com.teleconizer.app.data.model.SensorData
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -100,4 +102,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 }
+
 
